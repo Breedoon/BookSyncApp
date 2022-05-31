@@ -18,6 +18,8 @@ import R2Shared
 import SwiftSoup
 import WebKit
 import SwiftUI
+import SwiftAudioEx
+
 
 /// This class is meant to be subclassed by each publication format view controller. It contains the shared behavior, eg. navigation bar toggling.
 class ReaderViewController: UIViewController, Loggable {
@@ -47,7 +49,11 @@ class ReaderViewController: UIViewController, Loggable {
     private var highlightContextMenu: UIHostingController<HighlightContextMenu>?
     private let highlightDecorationGroup = "highlights"
     private var currentHighlightCancellable: AnyCancellable?
-    
+
+    private let controller = AudioController.shared
+    private var lastLoadFailed: Bool = false
+
+
     init(navigator: UIViewController & Navigator, publication: Publication, bookId: Book.Id, books: BookRepository, bookmarks: BookmarkRepository, highlights: HighlightRepository? = nil) {
         self.navigator = navigator
         self.publication = publication
@@ -142,7 +148,9 @@ class ReaderViewController: UIViewController, Loggable {
         if publication._isSearchable {
             buttons.append(UIBarButtonItem(image: UIImage(systemName: "magnifyingglass"), style: .plain, target: self, action: #selector(showSearchUI)))
         }
-        
+
+        buttons.append(UIBarButtonItem(image: UIImage(systemName: "play"), style: .plain, target: self, action: #selector(togglePlay)))
+
         return buttons
     }
     
@@ -171,7 +179,7 @@ class ReaderViewController: UIViewController, Loggable {
     var currentBookmark: Bookmark? {
         fatalError("Not implemented")
     }
-    
+
 
     // MARK: - Outlines
 
@@ -374,11 +382,74 @@ class ReaderViewController: UIViewController, Loggable {
     @objc private func goBackward() {
         navigator.goBackward()
     }
-    
+
     @objc private func goForward() {
         navigator.goForward()
     }
-    
+
+    // MARK: - AudioPlayer
+
+    func setPlayButtonState(forAudioPlayerState state: AudioPlayerState) {
+//        playButton.setTitle(state == .playing ? "Pause" : "Play", for: .normal)
+    }
+
+    @objc func togglePlay(_ sender: Any) {
+        if !controller.audioSessionController.audioSessionIsActive {
+            try? controller.audioSessionController.activateSession()
+        }
+        if lastLoadFailed, let item = controller.player.currentItem {
+            lastLoadFailed = false
+//            errorLabel.isHidden = true
+            try? controller.player.load(item: item, playWhenReady: true)
+        }
+        else {
+            controller.player.togglePlaying()
+        }
+    }
+
+    // MARK: - AudioPlayer Event Handlers
+
+    func updateMetaData() {
+        if let item = controller.player.currentItem {
+//            titleLabel.text = item.getTitle()
+//            artistLabel.text = item.getArtist()
+//            item.getArtwork({ (image) in
+//                self.imageView.image = image
+//            })
+        }
+    }
+
+    func updateTimeValues() {
+//        self.slider.maximumValue = Float(self.controller.player.duration)
+//        self.slider.setValue(Float(self.controller.player.currentTime), animated: true)
+//        self.elapsedTimeLabel.text = self.controller.player.currentTime.secondsToString()
+//        self.remainingTimeLabel.text = (self.controller.player.duration - self.controller.player.currentTime).secondsToString()
+    }
+
+
+    func handleAudioPlayerStateChange(data: AudioPlayer.StateChangeEventData) {
+        print("state=\(data)")
+        DispatchQueue.main.async {
+            self.setPlayButtonState(forAudioPlayerState: data)
+            switch data {
+            case .loading:
+//                self.loadIndicator.startAnimating()
+                self.updateMetaData()
+                self.updateTimeValues()
+            case .buffering:
+                print("buffering...");
+//                self.loadIndicator.startAnimating()
+            case .ready:
+//                self.loadIndicator.stopAnimating()
+                self.updateMetaData()
+                self.updateTimeValues()
+            case .playing, .paused, .idle:
+//                self.loadIndicator.stopAnimating()
+                self.updateTimeValues()
+            }
+        }
+    }
+
 }
 
 extension ReaderViewController: NavigatorDelegate {
