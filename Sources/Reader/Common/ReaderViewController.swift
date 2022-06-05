@@ -107,7 +107,7 @@ class ReaderViewController: UIViewController, Loggable {
         navigator.didMove(toParent: self)
         
         stackView.addArrangedSubview(accessibilityToolbar)
-        
+
         positionLabel.translatesAutoresizingMaskIntoConstraints = false
         positionLabel.font = .systemFont(ofSize: 12)
         positionLabel.textColor = .darkGray
@@ -116,6 +116,8 @@ class ReaderViewController: UIViewController, Loggable {
             positionLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             positionLabel.bottomAnchor.constraint(equalTo: navigator.view.bottomAnchor, constant: -20)
         ])
+
+        stackView.addArrangedSubview(playerToolbar)
     }
     
     override func willMove(toParent parent: UIViewController?) {
@@ -148,8 +150,6 @@ class ReaderViewController: UIViewController, Loggable {
         if publication._isSearchable {
             buttons.append(UIBarButtonItem(image: UIImage(systemName: "magnifyingglass"), style: .plain, target: self, action: #selector(showSearchUI)))
         }
-
-        buttons.append(UIBarButtonItem(image: UIImage(systemName: "play"), style: .plain, target: self, action: #selector(togglePlay)))
 
         return buttons
     }
@@ -363,6 +363,20 @@ class ReaderViewController: UIViewController, Loggable {
         toolbar.isHidden = !UIAccessibility.isVoiceOverRunning
         toolbar.tintColor = UIColor.black
         return toolbar
+    }()
+
+    private lazy var playerToolbar: UIToolbar = {
+        let toolbar = UIToolbar(frame: .zero)
+        toolbar.items = [
+            UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
+            UIBarButtonItem(image: UIImage(systemName: "play"), style: .plain, target: self, action: #selector(togglePlay)),
+            UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
+        ]
+        toolbar.isHidden = false
+        toolbar.tintColor = UIColor.black
+        return toolbar
+
+
     }()
     
     private var isVoiceOverRunning = UIAccessibility.isVoiceOverRunning
