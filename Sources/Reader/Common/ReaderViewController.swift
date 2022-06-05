@@ -118,6 +118,9 @@ class ReaderViewController: UIViewController, Loggable {
         ])
 
         stackView.addArrangedSubview(playerToolbar)
+        NSLayoutConstraint.activate([
+            playerToolbar.heightAnchor.constraint(equalToConstant: 50),  // TODO: make less arbitrary
+        ])
     }
     
     override func willMove(toParent parent: UIViewController?) {
@@ -365,18 +368,25 @@ class ReaderViewController: UIViewController, Loggable {
         return toolbar
     }()
 
-    private lazy var playerToolbar: UIToolbar = {
-        let toolbar = UIToolbar(frame: .zero)
-        toolbar.items = [
-            UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
-            UIBarButtonItem(image: UIImage(systemName: "play"), style: .plain, target: self, action: #selector(togglePlay)),
-            UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
-        ]
-        toolbar.isHidden = false
-        toolbar.tintColor = UIColor.black
-        return toolbar
+    private lazy var playerToolbar: UIStackView = {
+        stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.alignment = .top
+        stackView.distribution = .fillEqually
 
+        let playButton = UIButton()
+        playButton.translatesAutoresizingMaskIntoConstraints = false
+        playButton.setImage(UIImage(systemName: "play"), for: .normal)
+        playButton.addTarget(self, action: #selector(togglePlay), for: .touchUpInside)
 
+        stackView.addSubview(playButton)
+        NSLayoutConstraint.activate([
+            playButton.centerXAnchor.constraint(equalTo: stackView.centerXAnchor),
+            playButton.widthAnchor.constraint(equalToConstant: CGFloat(30)),  // TODO: sync with pic size
+            playButton.heightAnchor.constraint(equalToConstant: CGFloat(30)),
+        ])
+
+        return stackView
     }()
     
     private var isVoiceOverRunning = UIAccessibility.isVoiceOverRunning
