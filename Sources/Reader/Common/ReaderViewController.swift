@@ -52,7 +52,9 @@ class ReaderViewController: UIViewController, Loggable {
 
     private let controller = AudioController.shared
     private var lastLoadFailed: Bool = false
-    let playButton = UIButton()
+    private let playButton = UIButton()
+    private let playButtonSize = CGFloat(40)
+    private var playButtonImageConfig: UIImage.SymbolConfiguration;
 
 
     init(navigator: UIViewController & Navigator, publication: Publication, bookId: Book.Id, books: BookRepository, bookmarks: BookmarkRepository, highlights: HighlightRepository? = nil) {
@@ -62,12 +64,13 @@ class ReaderViewController: UIViewController, Loggable {
         self.books = books
         self.bookmarks = bookmarks
         self.highlights = highlights
-        
+        self.playButtonImageConfig = UIImage.SymbolConfiguration(pointSize: playButtonSize, weight: .bold, scale: .medium)
+
         super.init(nibName: nil, bundle: nil)
         
         addHighlightDecorationsObserverOnce()
         updateHighlightDecorations()
-    
+
         NotificationCenter.default.addObserver(self, selector: #selector(voiceOverStatusDidChange), name: UIAccessibility.voiceOverStatusDidChangeNotification, object: nil)
     }
 
@@ -120,7 +123,7 @@ class ReaderViewController: UIViewController, Loggable {
 
         stackView.addArrangedSubview(playerToolbar)
         NSLayoutConstraint.activate([
-            playerToolbar.heightAnchor.constraint(equalToConstant: 50),  // TODO: make less arbitrary
+            playerToolbar.heightAnchor.constraint(equalToConstant: 20 + playButtonSize * 1.5),  // TODO: make less arbitrary
         ])
 
         controller.player.event.stateChange.addListener(self, handleAudioPlayerStateChange)
@@ -380,14 +383,14 @@ class ReaderViewController: UIViewController, Loggable {
         stackView.distribution = .fillEqually
 
         playButton.translatesAutoresizingMaskIntoConstraints = false
-//        playButton.setImage(UIImage(systemName: "play"), for: .normal)
+        playButton.tintColor = .black
         playButton.addTarget(self, action: #selector(togglePlay), for: .touchUpInside)
 
         stackView.addSubview(playButton)
         NSLayoutConstraint.activate([
             playButton.centerXAnchor.constraint(equalTo: stackView.centerXAnchor),
-            playButton.widthAnchor.constraint(equalToConstant: CGFloat(30)),  // TODO: sync with pic size
-            playButton.heightAnchor.constraint(equalToConstant: CGFloat(30)),
+            playButton.widthAnchor.constraint(equalToConstant: playButtonSize),
+            playButton.heightAnchor.constraint(equalToConstant: playButtonSize),
         ])
 
         return stackView
@@ -418,7 +421,8 @@ class ReaderViewController: UIViewController, Loggable {
     // MARK: - AudioPlayer
 
     func setPlayButtonState(forAudioPlayerState state: AudioPlayerState) {
-        playButton.setImage(state == .playing ? UIImage(systemName: "pause") : UIImage(systemName: "play"), for: .normal)
+        playButton.setImage(state == .playing ? UIImage(systemName: "pause", withConfiguration: playButtonImageConfig)
+                : UIImage(systemName: "play", withConfiguration: playButtonImageConfig), for: .normal)
     }
 
     @objc func togglePlay(_ sender: Any) {
