@@ -52,6 +52,7 @@ class ReaderViewController: UIViewController, Loggable {
 
     private let controller = AudioController.shared
     private var lastLoadFailed: Bool = false
+    let playButton = UIButton()
 
 
     init(navigator: UIViewController & Navigator, publication: Publication, bookId: Book.Id, books: BookRepository, bookmarks: BookmarkRepository, highlights: HighlightRepository? = nil) {
@@ -121,6 +122,10 @@ class ReaderViewController: UIViewController, Loggable {
         NSLayoutConstraint.activate([
             playerToolbar.heightAnchor.constraint(equalToConstant: 50),  // TODO: make less arbitrary
         ])
+
+        controller.player.event.stateChange.addListener(self, handleAudioPlayerStateChange)
+        handleAudioPlayerStateChange(data: controller.player.playerState)
+
     }
     
     override func willMove(toParent parent: UIViewController?) {
@@ -374,9 +379,8 @@ class ReaderViewController: UIViewController, Loggable {
         stackView.alignment = .top
         stackView.distribution = .fillEqually
 
-        let playButton = UIButton()
         playButton.translatesAutoresizingMaskIntoConstraints = false
-        playButton.setImage(UIImage(systemName: "play"), for: .normal)
+//        playButton.setImage(UIImage(systemName: "play"), for: .normal)
         playButton.addTarget(self, action: #selector(togglePlay), for: .touchUpInside)
 
         stackView.addSubview(playButton)
@@ -414,7 +418,7 @@ class ReaderViewController: UIViewController, Loggable {
     // MARK: - AudioPlayer
 
     func setPlayButtonState(forAudioPlayerState state: AudioPlayerState) {
-//        playButton.setTitle(state == .playing ? "Pause" : "Play", for: .normal)
+        playButton.setImage(state == .playing ? UIImage(systemName: "pause") : UIImage(systemName: "play"), for: .normal)
     }
 
     @objc func togglePlay(_ sender: Any) {
@@ -452,7 +456,7 @@ class ReaderViewController: UIViewController, Loggable {
 
 
     func handleAudioPlayerStateChange(data: AudioPlayer.StateChangeEventData) {
-        print("state=\(data)")
+        print("player state=\(data)")
         DispatchQueue.main.async {
             self.setPlayButtonState(forAudioPlayerState: data)
             switch data {
