@@ -55,7 +55,7 @@ class ReaderViewController: UIViewController, Loggable {
     private let playButton = UIButton()
     private let playButtonSize = CGFloat(40)
     private var playButtonImageConfig: UIImage.SymbolConfiguration;
-
+    private var timer = Timer()
 
     init(navigator: UIViewController & Navigator, publication: Publication, bookId: Book.Id, books: BookRepository, bookmarks: BookmarkRepository, highlights: HighlightRepository? = nil) {
         self.navigator = navigator
@@ -128,7 +128,9 @@ class ReaderViewController: UIViewController, Loggable {
 
         controller.player.event.stateChange.addListener(self, handleAudioPlayerStateChange)
         handleAudioPlayerStateChange(data: controller.player.playerState)
-
+        self.timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true, block: { _ in
+            self.updatePlayHighlight()
+        })
     }
     
     override func willMove(toParent parent: UIViewController?) {
@@ -429,14 +431,42 @@ class ReaderViewController: UIViewController, Loggable {
         if !controller.audioSessionController.audioSessionIsActive {
             try? controller.audioSessionController.activateSession()
         }
-        if lastLoadFailed, let item = controller.player.currentItem {
-            lastLoadFailed = false
+//        if lastLoadFailed, let item = controller.player.currentItem {
+//            lastLoadFailed = false
 //            errorLabel.isHidden = true
-            try? controller.player.load(item: item, playWhenReady: true)
+//            try? controller.player.load(item: item, playWhenReady: true)
+//        }
+        controller.togglePlaying()
+    }
+
+    func updatePlayHighlight() {
+        if (controller.player.playerState != .playing) {
+            return  // doesn't need to do anything when player is not playing
         }
-        else {
-            controller.player.togglePlaying()
+        let currAudioIdx = Int(controller.player.currentTime / 0.02)
+        let currWordIdx = controller.transcriptWordPath[currAudioIdx]
+        if (currWordIdx == controller.latestWordIdx) {
+            return // already showing the needed word, no need to do anything
         }
+        // If reached here, need to update the highlight
+        if let decorator = self.navigator as? DecorableNavigator {
+            decorator.apply(decorations: [], in: "player")  // remove previous highlight
+        }
+
+        controller.latestWordIdx = currWordIdx  // save the current word to not re-highlight it
+        print(controller.transcriptWords[currWordIdx])
+        let curr = navigator.currentLocation!
+        var locator = Locator(href: curr.href, type: curr.type, title: curr.type, locations: curr.locations,
+                text: Locator.Text(
+                        after: String(Array(controller.transcriptWords[currWordIdx...]).dropFirst(1).joined(separator: " ").prefix(200)),
+                        before: String(Array(controller.transcriptWords[0...currWordIdx]).dropLast(1).joined(separator: " ").prefix(200)),
+                        highlight: controller.transcriptWords[currWordIdx]
+                ))
+        if let decorator = self.navigator as? DecorableNavigator {
+            let decoration = Decoration(id: "playerWord", locator: locator, style: Decoration.Style.highlight(tint: .blue, isActive: false))
+            decorator.apply(decorations: [decoration], in: "player")
+        }
+
     }
 
     // MARK: - AudioPlayer Event Handlers
