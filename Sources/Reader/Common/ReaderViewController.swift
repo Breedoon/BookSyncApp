@@ -19,6 +19,7 @@ import SwiftSoup
 import WebKit
 import SwiftUI
 import SwiftAudioEx
+import SwiftAudioPlayer
 
 
 /// This class is meant to be subclassed by each publication format view controller. It contains the shared behavior, eg. navigation bar toggling.
@@ -50,12 +51,41 @@ class ReaderViewController: UIViewController, Loggable {
     private let highlightDecorationGroup = "highlights"
     private var currentHighlightCancellable: AnyCancellable?
 
-    private let controller = AudioController.shared
     private var lastLoadFailed: Bool = false
     private let playButton = UIButton()
     private let playButtonSize = CGFloat(40)
     private var playButtonImageConfig: UIImage.SymbolConfiguration;
     private var timer = Timer()
+
+    let transcriptWords = ["with", "the", "progressive", "dawn", "the", "outlines", "of", "an", "immense", "camp", "became", "visible", "long", "stretches", "of", "several", "rows", "of", "barbed", "wire", "fences", "watch", "towers", "searchlights", "and", "long", "columns", "of", "ragged", "human", "figures", "grey", "in", "the", "greyness", "of", "dawn", "trekking", "along", "the", "straight", "desolate", "roads", "to", "what", "destination", "we", "did", "not", "know"]
+    let transcriptWordPath = [0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,6,6,6,6,6,6,6,6,6,7,7,7,7,7,7,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,14,14,14,14,14,14,14,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,17,17,17,17,17,17,17,17,17,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,22,22,22,22,22,22,22,22,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,24,24,24,24,24,24,24,24,24,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,27,27,27,27,27,27,27,27,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,32,32,32,32,32,33,33,33,33,33,33,33,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34,35,35,35,35,35,35,35,35,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,38,38,38,38,38,38,38,38,38,38,38,38,38,39,39,39,39,39,39,39,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,43,43,43,43,43,43,43,43,44,44,44,44,44,44,44,44,44,44,44,44,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,46,46,46,46,46,46,46,47,47,47,47,47,47,47,47,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49]
+    var latestWordIdx = -1;
+
+    var beingSeeked: Bool = false
+
+    var downloadId: UInt?
+    var playingStatusId: UInt?
+    var elapsedId: UInt?
+
+    var duration: Double = 0.0
+    var elapsed: Double = 0.0
+    var playbackStatus: SAPlayingStatus = .paused
+
+    var lastPlayedAudioIndex: Int?
+
+    var isPlayable: Bool = false {
+        didSet {
+            if isPlayable {
+                playButton.isEnabled = true
+//                skipBackwardButton.isEnabled = true
+//                skipForwardButton.isEnabled = true
+            } else {
+                playButton.isEnabled = false
+//                skipBackwardButton.isEnabled = false
+//                skipForwardButton.isEnabled = false
+            }
+        }
+    }
 
     init(navigator: UIViewController & Navigator, publication: Publication, bookId: Book.Id, books: BookRepository, bookmarks: BookmarkRepository, highlights: HighlightRepository? = nil) {
         self.navigator = navigator
@@ -126,8 +156,11 @@ class ReaderViewController: UIViewController, Loggable {
             playerToolbar.heightAnchor.constraint(equalToConstant: 20 + playButtonSize * 1.5),  // TODO: make less arbitrary
         ])
 
-        controller.player.event.stateChange.addListener(self, handleAudioPlayerStateChange)
-        handleAudioPlayerStateChange(data: controller.player.playerState)
+        let documents = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+
+        SAPlayer.shared.startSavedAudio(withSavedUrl: documents.appendingPathComponent("02-test-20sec.mp3"))
+        subscribeToChanges()
+        setPlayButtonState(forAudioPlayerState: playbackStatus)
         self.timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true, block: { _ in
             self.updatePlayHighlight()
         })
@@ -422,30 +455,23 @@ class ReaderViewController: UIViewController, Loggable {
 
     // MARK: - AudioPlayer
 
-    func setPlayButtonState(forAudioPlayerState state: AudioPlayerState) {
+    func setPlayButtonState(forAudioPlayerState state: SAPlayingStatus) {
         playButton.setImage(state == .playing ? UIImage(systemName: "pause", withConfiguration: playButtonImageConfig)
                 : UIImage(systemName: "play", withConfiguration: playButtonImageConfig), for: .normal)
     }
 
     @objc func togglePlay(_ sender: Any) {
-        if !controller.audioSessionController.audioSessionIsActive {
-            try? controller.audioSessionController.activateSession()
-        }
-//        if lastLoadFailed, let item = controller.player.currentItem {
-//            lastLoadFailed = false
-//            errorLabel.isHidden = true
-//            try? controller.player.load(item: item, playWhenReady: true)
-//        }
-        controller.togglePlaying()
+        SAPlayer.shared.togglePlayAndPause()
     }
 
     func updatePlayHighlight() {
-        if (controller.player.playerState != .playing) {
+        if (playbackStatus != .playing) {
             return  // doesn't need to do anything when player is not playing
         }
-        let currAudioIdx = Int(controller.player.currentTime / 0.02)
-        let currWordIdx = controller.transcriptWordPath[currAudioIdx]
-        if (currWordIdx == controller.latestWordIdx) {
+        elapsed += 0.02  // fake update elapsed cuz by default it gets updated only ~3/sec
+        let currAudioIdx: Int = Int(elapsed / 0.02)
+        let currWordIdx = transcriptWordPath[currAudioIdx]
+        if (currWordIdx == latestWordIdx) {
             return // already showing the needed word, no need to do anything
         }
         // If reached here, need to update the highlight
@@ -453,14 +479,14 @@ class ReaderViewController: UIViewController, Loggable {
             decorator.apply(decorations: [], in: "player")  // remove previous highlight
         }
 
-        controller.latestWordIdx = currWordIdx  // save the current word to not re-highlight it
-        print(controller.transcriptWords[currWordIdx])
+        latestWordIdx = currWordIdx  // save the current word to not re-highlight it
+        print(transcriptWords[currWordIdx])
         let curr = navigator.currentLocation!
         var locator = Locator(href: curr.href, type: curr.type, title: curr.type, locations: curr.locations,
                 text: Locator.Text(
-                        after: String(Array(controller.transcriptWords[currWordIdx...]).dropFirst(1).joined(separator: " ").prefix(200)),
-                        before: String(Array(controller.transcriptWords[0...currWordIdx]).dropLast(1).joined(separator: " ").prefix(200)),
-                        highlight: controller.transcriptWords[currWordIdx]
+                        after: String(Array(transcriptWords[currWordIdx...]).dropFirst(1).joined(separator: " ").prefix(200)),
+                        before: String(Array(transcriptWords[0...currWordIdx]).dropLast(1).joined(separator: " ").prefix(200)),
+                        highlight: transcriptWords[currWordIdx]
                 ))
         if let decorator = self.navigator as? DecorableNavigator {
             let decoration = Decoration(id: "playerWord", locator: locator, style: Decoration.Style.highlight(tint: .blue, isActive: false))
@@ -469,47 +495,64 @@ class ReaderViewController: UIViewController, Loggable {
 
     }
 
-    // MARK: - AudioPlayer Event Handlers
+    func subscribeToChanges() {
+        elapsedId = SAPlayer.Updates.ElapsedTime.subscribe { [weak self] (position) in
+            guard let self = self else { return }
 
-    func updateMetaData() {
-        if let item = controller.player.currentItem {
-//            titleLabel.text = item.getTitle()
-//            artistLabel.text = item.getArtist()
-//            item.getArtwork({ (image) in
-//                self.imageView.image = image
-//            })
+//            self.currentTimestampLabel.text = SAPlayer.prettifyTimestamp(position)
+            self.elapsed = position
+
+            guard self.duration != 0 else { return }
+
+//            self.scrubberSlider.value = Float(position/self.duration)
         }
+
+        playingStatusId = SAPlayer.Updates.PlayingStatus.subscribe { [weak self] (playing) in
+            guard let self = self else { return }
+
+            self.playbackStatus = playing
+
+            self.setPlayButtonState(forAudioPlayerState: self.playbackStatus)
+
+        }
+
     }
 
-    func updateTimeValues() {
-//        self.slider.maximumValue = Float(self.controller.player.duration)
-//        self.slider.setValue(Float(self.controller.player.currentTime), animated: true)
-//        self.elapsedTimeLabel.text = self.controller.player.currentTime.secondsToString()
-//        self.remainingTimeLabel.text = (self.controller.player.duration - self.controller.player.currentTime).secondsToString()
+    func unsubscribeFromChanges() {
+        guard let elapsedId = self.elapsedId,
+              let downloadId = self.downloadId,
+              let playingStatusId = self.playingStatusId else { return }
+
+        SAPlayer.Updates.ElapsedTime.unsubscribe(elapsedId)
+        SAPlayer.Updates.AudioDownloading.unsubscribe(downloadId)
+        SAPlayer.Updates.PlayingStatus.unsubscribe(playingStatusId)
     }
 
 
-    func handleAudioPlayerStateChange(data: AudioPlayer.StateChangeEventData) {
-        print("player state=\(data)")
-        DispatchQueue.main.async {
-            self.setPlayButtonState(forAudioPlayerState: data)
-            switch data {
-            case .loading:
-//                self.loadIndicator.startAnimating()
-                self.updateMetaData()
-                self.updateTimeValues()
-            case .buffering:
-                print("buffering...");
-//                self.loadIndicator.startAnimating()
-            case .ready:
-//                self.loadIndicator.stopAnimating()
-                self.updateMetaData()
-                self.updateTimeValues()
-            case .playing, .paused, .idle:
-//                self.loadIndicator.stopAnimating()
-                self.updateTimeValues()
-            }
-        }
+    @IBAction func scrubberStartedSeeking(_ sender: UISlider) {
+//        beingSeeked = true
+    }
+
+    @IBAction func scrubberSeeked(_ sender: Any) {
+//        let value = Double(scrubberSlider.value) * duration
+//        SAPlayer.shared.seekTo(seconds: value)
+//        beingSeeked = false
+    }
+
+
+    @IBAction func rateChanged(_ sender: Any) {
+//        let speed = rateSlider.value
+//        rateLabel.text = "rate: \(speed)x"
+//
+//        if skipSilencesSwitch.isOn {
+//            SAPlayer.Features.SkipSilences.setRateSafely(speed) // if using Skip Silences, we need use this version of setting rate to safely change the rate with the feature enabled.
+//        } else {
+//            SAPlayer.shared.rate = speed
+//        }
+    }
+
+    @IBAction func playPauseTouched(_ sender: Any) {
+        SAPlayer.shared.togglePlayAndPause()
     }
 
 }
