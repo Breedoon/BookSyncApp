@@ -52,9 +52,18 @@ class ReaderViewController: UIViewController, Loggable {
     private var currentHighlightCancellable: AnyCancellable?
 
     private var lastLoadFailed: Bool = false
+
     private let playButton = UIButton()
     private let playButtonSize = CGFloat(40)
     private var playButtonImageConfig: UIImage.SymbolConfiguration;
+
+    private let rateButton = UIButton()
+    private let rateButtonFrameSize = CGFloat(40)
+    private let rateButtonSize = CGFloat(15)
+    private let rateOptions = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+    private let rateOptionsLabels = ["½×", "¾×", "1×", "1¼×", "1½×", "1¾×", "2×"]
+    private var rateOptionsSelectedIdx = 2  // 1x by default
+
     private var timer = Timer()
 
     let transcriptWords = ["with", "the", "progressive", "dawn", "the", "outlines", "of", "an", "immense", "camp", "became", "visible", "long", "stretches", "of", "several", "rows", "of", "barbed", "wire", "fences", "watch", "towers", "searchlights", "and", "long", "columns", "of", "ragged", "human", "figures", "grey", "in", "the", "greyness", "of", "dawn", "trekking", "along", "the", "straight", "desolate", "roads", "to", "what", "destination", "we", "did", "not", "know"]
@@ -77,10 +86,12 @@ class ReaderViewController: UIViewController, Loggable {
         didSet {
             if isPlayable {
                 playButton.isEnabled = true
+                rateButton.isEnabled = true
 //                skipBackwardButton.isEnabled = true
 //                skipForwardButton.isEnabled = true
             } else {
                 playButton.isEnabled = false
+                rateButton.isEnabled = false
 //                skipBackwardButton.isEnabled = false
 //                skipForwardButton.isEnabled = false
             }
@@ -428,6 +439,25 @@ class ReaderViewController: UIViewController, Loggable {
             playButton.heightAnchor.constraint(equalToConstant: playButtonSize),
         ])
 
+
+        rateButton.translatesAutoresizingMaskIntoConstraints = false
+        rateButton.addTarget(self, action: #selector(rateChanged), for: .touchUpInside)
+
+        stackView.addSubview(rateButton)
+        NSLayoutConstraint.activate([
+            rateButton.leftAnchor.constraint(equalTo: stackView.leftAnchor),
+//            rateButton.bottomAnchor.constraint(equalTo: stackView.bottomAnchor),
+            rateButton.widthAnchor.constraint(equalToConstant: rateButtonFrameSize),
+            rateButton.heightAnchor.constraint(equalToConstant: rateButtonFrameSize),
+        ])
+
+        rateButton.setTitle(rateOptionsLabels[rateOptionsSelectedIdx], for: .normal)
+        rateButton.setTitleColor(.black, for: .normal)
+        rateButton.titleLabel?.font =  UIFont.systemFont(ofSize: rateButtonSize)
+
+        rateButton.titleEdgeInsets = UIEdgeInsets(top: 5, left: 5, bottom: 5, right: 0)
+
+
         return stackView
     }()
     
@@ -468,7 +498,7 @@ class ReaderViewController: UIViewController, Loggable {
         if (playbackStatus != .playing) {
             return  // doesn't need to do anything when player is not playing
         }
-        elapsed += 0.02  // fake update elapsed cuz by default it gets updated only ~3/sec
+        elapsed += 0.02 * Double(SAPlayer.shared.rate ?? 1)  // fake update elapsed cuz by default it gets updated only ~3/sec
         let currAudioIdx: Int = Int(elapsed / 0.02)
         let currWordIdx = transcriptWordPath[currAudioIdx]
         if (currWordIdx == latestWordIdx) {
@@ -541,14 +571,11 @@ class ReaderViewController: UIViewController, Loggable {
 
 
     @IBAction func rateChanged(_ sender: Any) {
-//        let speed = rateSlider.value
-//        rateLabel.text = "rate: \(speed)x"
-//
-//        if skipSilencesSwitch.isOn {
-//            SAPlayer.Features.SkipSilences.setRateSafely(speed) // if using Skip Silences, we need use this version of setting rate to safely change the rate with the feature enabled.
-//        } else {
-//            SAPlayer.shared.rate = speed
-//        }
+        // Once clicked, go to next rate option and loop around (1x -> 1.5x -> 2x -> 0.5x -> 1x)
+        let newRateOptionIdx = (rateOptionsSelectedIdx + 1) % rateOptions.count
+        SAPlayer.shared.rate = Float(rateOptions[newRateOptionIdx])
+        rateButton.setTitle(rateOptionsLabels[newRateOptionIdx], for: .normal)
+        rateOptionsSelectedIdx = newRateOptionIdx
     }
 
     @IBAction func playPauseTouched(_ sender: Any) {
