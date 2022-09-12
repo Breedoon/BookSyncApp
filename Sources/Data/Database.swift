@@ -30,6 +30,7 @@ final class Database {
                 t.column("coverPath", .text)
                 t.column("locator", .text)
                 t.column("progression", .integer).notNull().defaults(to: 0)
+                t.column("audioPath", .text)
                 t.column("created", .datetime).notNull()
             }
             

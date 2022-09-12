@@ -31,12 +31,14 @@ struct Book: Codable {
     }
     /// Current progression in the publication, extracted from the locator.
     var progression: Double
+    /// Location of the audiobook attached to this book
+    var audioPath: String;
     /// Date of creation.
     var created: Date
     
     var mediaType: MediaType { MediaType.of(mediaType: type) ?? .binary }
     
-    init(id: Id? = nil, identifier: String? = nil, title: String, authors: String? = nil, type: String, path: String, coverPath: String? = nil, locator: Locator? = nil, created: Date = Date()) {
+    init(id: Id? = nil, identifier: String? = nil, title: String, authors: String? = nil, type: String, path: String, coverPath: String? = nil, locator: Locator? = nil, audioPath: String? = nil, created: Date = Date()) {
         self.id = id
         self.identifier = identifier
         self.title = title
@@ -46,6 +48,7 @@ struct Book: Codable {
         self.coverPath = coverPath
         self.locator = locator
         self.progression = locator?.locations.totalProgression ?? 0
+        self.audioPath = audioPath ?? ""
         self.created = created
     }
     
@@ -96,5 +99,25 @@ final class BookRepository {
                  WHERE id = \(id)
             """)
         }
+    }
+
+    func get(id: Book.Id) -> AnyPublisher<Book, Error> {
+        db.observe { db in
+            return try Book.filter(Book.Columns.id == id).fetchOne(db)!
+        }
+    }
+
+    func addAudioPath(id: Book.Id, audioPath: URL) -> AnyPublisher<Void, Error> {
+        db.write { db in
+            try db.execute(literal: """
+                                        UPDATE book
+                                           SET audioPath = \(audioPath.absoluteString)
+                                         WHERE id = \(id)
+                                    """)
+        }
+//        return Future(on: .global()) { promise in
+//            return promise(.success(nil))
+//        }
+
     }
 }
