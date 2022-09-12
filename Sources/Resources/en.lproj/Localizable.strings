@@ -98,6 +98,9 @@
 /* Error message when trying to read an EPUB that is invalid */
 "reader_error_epubNotValid" = "Invalid EPUB file";
 
+/* Success message when adding a highlight */
+"reader_audio_import_success_message" = "Audiobook successfully imported";
+
 /* Accessibility label to go backward in the publication */
 "reader_backward_a11y_label" = "Previous Chapter";
 /* Accessibility label to go forward in the publication */

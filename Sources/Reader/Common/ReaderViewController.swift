@@ -582,6 +582,61 @@ class ReaderViewController: UIViewController, Loggable {
         SAPlayer.shared.togglePlayAndPause()
     }
 
+    @objc func importAudioBook(_ sender: Any) {
+        let documentPicker = UIDocumentPickerViewController(documentTypes: ["public.mp3"], in: .import)
+        documentPicker.delegate = self
+        present(documentPicker, animated: true, completion: nil)
+
+    }
+
+    /// Moves the given `sourceURL` to the user Documents/ directory.
+    private func moveAudiobookToDocuments(from source: URL, title: String, mediaType: MediaType) -> AnyPublisher<URL, Error> {
+        Paths.makeDocumentURL(title: title, mediaType: mediaType)
+                .flatMap { destination in
+                    Future(on: .global()) { [self] promise in
+                        // Necessary to read URL exported from the Files app, for example.
+                        let shouldRelinquishAccess = source.startAccessingSecurityScopedResource()
+                        defer {
+                            if shouldRelinquishAccess {
+                                source.stopAccessingSecurityScopedResource()
+                            }
+                        }
+
+                        do {
+                            try FileManager.default.copyItem(at: source, to: destination)
+                            books.addAudioPath(id: bookId, audioPath: destination)
+                                    .receive(on: DispatchQueue.main)
+                                    .sink { completion in
+                                        switch completion {
+                                        case .finished:
+                                            print("Finished audio link updating")
+                                        case .failure(let error):
+                                            print(error)
+                                            self.moduleDelegate?.presentError(error, from: self)
+                                        }
+                                    } receiveValue: {}
+                                    .store(in: &subscriptions)
+                            // When returning .finished for some reason,
+                            // it spirals into infinite loop and keeps copying files, so have to throw an error
+                            // FIXME: Fix infinite loop when returning .finished
+                            return promise(.failure(LibraryError.cancelled))
+                        } catch {
+                            return promise(.failure(LibraryError.importFailed(error)))
+                        }
+                    }
+                }
+                .eraseToAnyPublisher()
+    }
+
+    func importAudiobook(from url: URL) -> AnyPublisher<(), Error> {
+        books.get(id: bookId).flatMap { [self] book in
+                    moveAudiobookToDocuments(from: url, title: book.title, mediaType: MediaType.mp3).flatMap { url in
+                        books.addAudioPath(id: bookId, audioPath: url)
+                    }
+                }
+                .eraseToAnyPublisher()
+    }
+
 }
 
 extension ReaderViewController: NavigatorDelegate {
@@ -739,4 +794,34 @@ extension ReaderViewController: UIPopoverPresentationControllerDelegate {
     {
         return .none
     }
+}
+
+extension ReaderViewController: UIDocumentPickerDelegate {
+
+    public func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard controller.documentPickerMode == .import else {
+            return
+        }
+        importFiles(at: urls)
+    }
+
+    public func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentAt url: URL) {
+        importFiles(at: [url])
+    }
+
+    private func importFiles(at urls: [URL]) {
+        importAudiobook(from: urls[0])
+                .receive(on: DispatchQueue.main)
+                .sink { completion in
+                    switch completion {
+                    case .finished:
+                        toast(NSLocalizedString("reader_audio_import_success_message", comment: "Success message when importing an audiobook into an open book"), on: self.view, duration: 1)
+                    case .failure(let error):
+                        print(error)
+                        self.moduleDelegate?.presentError(error, from: self)
+                    }
+                } receiveValue: {}
+                .store(in: &subscriptions)
+    }
+
 }
