@@ -51,6 +51,8 @@ class ReaderViewController: UIViewController, Loggable {
     private let highlightDecorationGroup = "highlights"
     private var currentHighlightCancellable: AnyCancellable?
 
+    private var audioBookPath: String = ""
+
     private var lastLoadFailed: Bool = false
 
     private let playButton = UIButton()
@@ -128,10 +130,10 @@ class ReaderViewController: UIViewController, Loggable {
         super.viewDidLoad()
         
         view.backgroundColor = .white
-      
-        navigationItem.rightBarButtonItems = makeNavigationBarButtons()
-        updateNavigationBar(animated: false)
-        
+
+        makeNavigationBar()
+        updateAudioBookPath()
+
         stackView = UIStackView(frame: view.bounds)
         stackView.distribution = .fill
         stackView.axis = .vertical
@@ -169,7 +171,6 @@ class ReaderViewController: UIViewController, Loggable {
 
         let documents = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
 
-        SAPlayer.shared.startSavedAudio(withSavedUrl: documents.appendingPathComponent("02-test-20sec.mp3"))
         subscribeToChanges()
         setPlayButtonState(forAudioPlayerState: playbackStatus)
         self.timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true, block: { _ in
@@ -208,9 +209,37 @@ class ReaderViewController: UIViewController, Loggable {
             buttons.append(UIBarButtonItem(image: UIImage(systemName: "magnifyingglass"), style: .plain, target: self, action: #selector(showSearchUI)))
         }
 
+        if audioBookPath == "" {  // no audiobook added yet, so add button for that
+            buttons.append(UIBarButtonItem(image: UIImage(systemName: "waveform.path.badge.plus"), style: .plain, target: self, action: #selector(importAudioBook)))
+        }
         return buttons
     }
-    
+
+    func updateAudioBookPath() {
+        books.get(id: bookId)
+                .receive(on: DispatchQueue.main)
+                .sink { completion in
+                    if case .failure(let error) = completion {
+                        self.moduleDelegate?.presentError(error, from: self)
+                    }
+                } receiveValue: { [self] book in
+                    let newAudioBookPath = book.audioPath
+                    if audioBookPath != newAudioBookPath {  // value changed so need to update navbar
+                        audioBookPath = newAudioBookPath
+                        makeNavigationBar(animated: true)
+                        if audioBookPath != "", let url = URL(string: audioBookPath) {
+                            SAPlayer.shared.startSavedAudio(withSavedUrl: url)
+                        }
+                    }
+                }
+                .store(in: &subscriptions)
+    }
+
+    func makeNavigationBar(animated: Bool=false) {
+        navigationItem.rightBarButtonItems = makeNavigationBarButtons()
+        updateNavigationBar(animated: animated)
+    }
+
     func toggleNavigationBar() {
         navigationBarHidden = !navigationBarHidden
     }
