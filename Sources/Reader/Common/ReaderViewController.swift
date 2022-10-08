@@ -226,6 +226,10 @@ class ReaderViewController: UIViewController, Loggable {
                         self.moduleDelegate?.presentError(error, from: self)
                     }
                 } receiveValue: { [self] book in
+                    if (book == nil) {
+                        return
+                    }
+                    let book = book!
                     let newAudioBookPath = book.audioPath
                     if audioBookPath != newAudioBookPath {  // value changed so need to update navbar
                         audioBookPath = newAudioBookPath
@@ -742,7 +746,7 @@ class ReaderViewController: UIViewController, Loggable {
 
     func importAudiobook(from url: URL) -> AnyPublisher<(), Error> {
         books.get(id: bookId).flatMap { [self] book in
-                    moveAudiobookToDocuments(from: url, title: book.title, mediaType: MediaType.mp3).flatMap { url in
+                    moveAudiobookToDocuments(from: url, title: book!.title, mediaType: MediaType.mp3).flatMap { url in
                         books.addAudioPath(id: bookId, audioPath: url)
                     }
                 }
