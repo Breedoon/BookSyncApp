@@ -68,9 +68,11 @@ class ReaderViewController: UIViewController, Loggable {
 
     private var timer = Timer()
 
-    let transcriptWords = ["with", "the", "progressive", "dawn", "the", "outlines", "of", "an", "immense", "camp", "became", "visible", "long", "stretches", "of", "several", "rows", "of", "barbed", "wire", "fences", "watch", "towers", "searchlights", "and", "long", "columns", "of", "ragged", "human", "figures", "grey", "in", "the", "greyness", "of", "dawn", "trekking", "along", "the", "straight", "desolate", "roads", "to", "what", "destination", "we", "did", "not", "know"]
-    let transcriptWordPath = [0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,6,6,6,6,6,6,6,6,6,7,7,7,7,7,7,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,14,14,14,14,14,14,14,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,17,17,17,17,17,17,17,17,17,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,22,22,22,22,22,22,22,22,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,24,24,24,24,24,24,24,24,24,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,27,27,27,27,27,27,27,27,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,32,32,32,32,32,33,33,33,33,33,33,33,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34,35,35,35,35,35,35,35,35,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,38,38,38,38,38,38,38,38,38,38,38,38,38,39,39,39,39,39,39,39,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,43,43,43,43,43,43,43,43,44,44,44,44,44,44,44,44,44,44,44,44,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,45,46,46,46,46,46,46,46,47,47,47,47,47,47,47,47,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49]
-    var latestWordIdx = -1;
+    private final var syncPathCacheSize = 200;  /* words retained in memory at every time (fetched from db) */
+    private final var wordsLeftToReloadSyncPathCache = 5;  /* reload cache when reached Xth word from end of cache */
+    private var syncPathCacheOffset = 0;
+    private var syncPathCache: [Int] = [];
+    private var latestWordIdx = -1;
 
     var beingSeeked: Bool = false
 
@@ -108,6 +110,7 @@ class ReaderViewController: UIViewController, Loggable {
         self.bookmarks = bookmarks
         self.highlights = highlights
         self.playButtonImageConfig = UIImage.SymbolConfiguration(pointSize: playButtonSize, weight: .bold, scale: .medium)
+        self.syncPathCache.reserveCapacity(self.syncPathCacheSize + self.wordsLeftToReloadSyncPathCache)
 
         super.init(nibName: nil, bundle: nil)
         
@@ -525,33 +528,113 @@ class ReaderViewController: UIViewController, Loggable {
 
     func updatePlayHighlight() {
         if (playbackStatus != .playing) {
+            self.latestWordIdx = -1
             return  // doesn't need to do anything when player is not playing
         }
+        // Check if we're correct number of words away from the end of cache
+        if (self.latestWordIdx == -1) {
+//        if (wordIdxToCacheIdx(wordIdx: self.latestWordIdx) <= self.syncPathCache.count - self.wordsLeftToReloadSyncPathCache) {
+            updateSyncPathCache()
+            self.latestWordIdx = 0
+        }
+        return  // TODO: remove
         elapsed += 0.02 * Double(SAPlayer.shared.rate ?? 1)  // fake update elapsed cuz by default it gets updated only ~3/sec
         let currAudioIdx: Int = Int(elapsed / 0.02)
-        let currWordIdx = transcriptWordPath[currAudioIdx]
-        if (currWordIdx == latestWordIdx) {
+
+        var nextCacheIdx = wordIdxToCacheIdx(wordIdx: self.latestWordIdx) + 1
+        if (nextCacheIdx >= self.syncPathCache.count) {  // if exceeding current cache size
+            nextCacheIdx = wordIdxToCacheIdx(wordIdx: self.latestWordIdx) // keep latest word
+        }
+
+        if (currAudioIdx < self.syncPathCache[nextCacheIdx]) { // next word didn't start yet
             return // already showing the needed word, no need to do anything
         }
+
         // If reached here, need to update the highlight
+
+        let currWordIdx = cacheIdxToWordIdx(cacheIdx: nextCacheIdx)
         if let decorator = self.navigator as? DecorableNavigator {
             decorator.apply(decorations: [], in: "player")  // remove previous highlight
         }
 
         latestWordIdx = currWordIdx  // save the current word to not re-highlight it
-        print(transcriptWords[currWordIdx])
-        let curr = navigator.currentLocation!
-        var locator = Locator(href: curr.href, type: curr.type, title: curr.type, locations: curr.locations,
-                text: Locator.Text(
-                        after: String(Array(transcriptWords[currWordIdx...]).dropFirst(1).joined(separator: " ").prefix(200)),
-                        before: String(Array(transcriptWords[0...currWordIdx]).dropLast(1).joined(separator: " ").prefix(200)),
-                        highlight: transcriptWords[currWordIdx]
-                ))
+        var locator = wordIdxToLocator(currWordIdx: currWordIdx)
         if let decorator = self.navigator as? DecorableNavigator {
             let decoration = Decoration(id: "playerWord", locator: locator, style: Decoration.Style.highlight(tint: .blue, isActive: false))
             decorator.apply(decorations: [decoration], in: "player")
         }
+//        TODO: move update transript here
+    }
 
+    func wordIdxToLocator(currWordIdx: Int) -> Locator {
+        let curr = navigator.currentLocation!
+//        evaluateScript(propertiesScript) { res in
+//            if case .failure(let error) = res {
+//                self.log(.error, error)
+//            }
+//        }
+        return Locator(href: curr.href, type: curr.type, title: curr.type, locations: curr.locations,
+                text: Locator.Text(
+                        after: ""/*String(Array(transcriptWords[currWordIdx...]).dropFirst(1).joined(separator: " ").prefix(200))*/,
+                        before: ""/*String(Array(transcriptWords[0...currWordIdx]).dropLast(1).joined(separator: " ").prefix(200))*/,
+                        highlight: ""/*transcriptWords[currWordIdx]*/
+                ))
+    }
+
+    private func wordIdxToCacheIdx(wordIdx: Int) -> Int {
+        return wordIdx - self.syncPathCacheOffset
+    }
+
+    private func cacheIdxToWordIdx(cacheIdx: Int) -> Int {
+        return cacheIdx + self.syncPathCacheOffset
+    }
+
+    private func updateTextCache() {
+        evaluateJavaScript("document.body.textContent.substr(0, 5000)") { result in
+            switch result {
+            case .success(let value):
+                print(value)
+            case .failure(let error):
+                self.log(.error, error)
+            }
+        }
+    }
+
+    private func updateSyncPathCache() {
+        books.getSyncPath(id: self.bookId,
+                        limit: self.syncPathCacheSize,
+                        offset: self.syncPathCacheOffset).receive(on: DispatchQueue.main)
+                .sink { completion in
+                    switch completion {
+                    case .finished:
+                        self.log(.debug, "Successfully refreshed sync path cache")
+                    case .failure(let error):
+                        print(error)
+                        self.moduleDelegate?.presentError(error, from: self)
+                    }
+                } receiveValue: { minWordIdx, audioIdxs in
+                    // Step 1: move last safety batch: to the beginning [~~~~~~~|###] -> [###|_______]
+                    // can't move move more than there is
+                    let nTransferable = min(self.wordsLeftToReloadSyncPathCache, self.syncPathCache.count)
+                    self.syncPathCache[0..<nTransferable] = self.syncPathCache[self.syncPathCache.count - nTransferable..<self.syncPathCache.count]
+                    // Step 1.5: fit cache to the data to be added (make smaller or larger - most cases nothing)
+                    let nSlotsForNewData = self.syncPathCache.count - nTransferable
+                    if (audioIdxs.count != nSlotsForNewData) { // happens in the beginning and at the end
+                        // add dummy elements that are about to be replaced by new data if not enough
+                        self.syncPathCache += [Int](repeating: -1, count: max(0, audioIdxs.count - nSlotsForNewData))
+                        // if we're at the end, there isn't enough data to fill the whole cache, drop excess slots
+                        self.syncPathCache = Array(self.syncPathCache[0..<nTransferable + audioIdxs.count])
+                    }
+
+                    // Step 2: add new data: [###|_______] -> [###|#######]
+                    self.syncPathCache[nTransferable..<nTransferable + audioIdxs.count] = audioIdxs[0..<audioIdxs.count]
+                    self.syncPathCacheOffset += audioIdxs.count  // commit offset
+                }
+                .store(in: &subscriptions)
+    }
+
+    func evaluateJavaScript(_ script: String, completion: ((Result<Any, Error>) -> Void)? = nil) {
+        (self.navigator as! R2Navigator.EPUBNavigatorViewController).evaluateJavaScript(script, completion: completion)
     }
 
     func subscribeToChanges() {
