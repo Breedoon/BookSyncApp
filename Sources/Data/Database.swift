@@ -31,6 +31,7 @@ final class Database {
                 t.column("locator", .text)
                 t.column("progression", .integer).notNull().defaults(to: 0)
                 t.column("audioPath", .text)
+                t.column("lastPlayedWordId", .integer).defaults(to: 0)
                 t.column("created", .datetime).notNull()
             }
             
@@ -50,10 +51,18 @@ final class Database {
                 t.column("color", .integer).notNull()
                 t.column("created", .datetime).notNull()
             }
+
+            try db.create(table: "syncpaths", ifNotExists: true) { t in
+                t.column("id", .text).primaryKey()
+                t.column("bookId", .integer).references("book", onDelete: .cascade).notNull()
+                t.column("wordId", .integer).notNull()
+                t.column("startTimeStep", .integer).notNull()
+            }
             
             // create an index to make sorting by progression faster
             try db.create(index: "index_highlight_progression", on: "highlight", columns: ["bookId", "progression"], ifNotExists: true)
             try db.create(index: "index_bookmark_progression", on: "bookmark", columns: ["bookId", "progression"], ifNotExists: true)
+            try db.create(index: "index_syncpaths_index", on: "syncpaths", columns: ["bookId", "wordId"], ifNotExists: true)
         }
     }
     

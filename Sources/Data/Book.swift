@@ -33,12 +33,14 @@ struct Book: Codable {
     var progression: Double
     /// Location of the audiobook attached to this book
     var audioPath: String;
+    /// Number of word in the text that has been played (0-indexed)
+    var lastPlayedWordId: Int;
     /// Date of creation.
     var created: Date
     
     var mediaType: MediaType { MediaType.of(mediaType: type) ?? .binary }
     
-    init(id: Id? = nil, identifier: String? = nil, title: String, authors: String? = nil, type: String, path: String, coverPath: String? = nil, locator: Locator? = nil, audioPath: String? = nil, created: Date = Date()) {
+    init(id: Id? = nil, identifier: String? = nil, title: String, authors: String? = nil, type: String, path: String, coverPath: String? = nil, locator: Locator? = nil, audioPath: String? = nil, lastPlayedWordId: Int? = nil, created: Date = Date()) {
         self.id = id
         self.identifier = identifier
         self.title = title
@@ -49,6 +51,7 @@ struct Book: Codable {
         self.locator = locator
         self.progression = locator?.locations.totalProgression ?? 0
         self.audioPath = audioPath ?? ""
+        self.lastPlayedWordId = lastPlayedWordId ?? -1
         self.created = created
     }
     
@@ -101,9 +104,9 @@ final class BookRepository {
         }
     }
 
-    func get(id: Book.Id) -> AnyPublisher<Book, Error> {
+    func get(id: Book.Id) -> AnyPublisher<Book?, Error> {
         db.observe { db in
-            return try Book.filter(Book.Columns.id == id).fetchOne(db)!
+            return try Book.filter(Book.Columns.id == id).fetchOne(db)
         }
     }
 
@@ -114,10 +117,37 @@ final class BookRepository {
                                            SET audioPath = \(audioPath.absoluteString)
                                          WHERE id = \(id)
                                     """)
+            if (audioPath.absoluteString.contains("Experiences")) {
+                let path = try String(contentsOfFile: "/Users/breedoon/Yandex.Disk.localized/JetBrainsProjects/PyCharm/SSS/CP/path-27min-short.csv")
+                let sql = "INSERT INTO syncpaths (bookId, wordId, startTimeStep) VALUES (\(id.rawValue)," + path.replacingOccurrences(of: "\n", with: ");\nINSERT INTO syncpaths (bookId, wordId, startTimeStep) VALUES (\(id.rawValue),") + ");"
+                try db.execute(sql: sql)
+            }
         }
-//        return Future(on: .global()) { promise in
-//            return promise(.success(nil))
-//        }
+    }
 
+    func getSyncPath(id: Book.Id, limit: Int = 500, offset: Int = 0) -> AnyPublisher<(Int, [Int]), Error> {
+        db.observe { db in
+            do {
+                var audioIdxs: [Int] = []
+                var wordIdxs: [Int] = []
+                audioIdxs.reserveCapacity(limit)
+                wordIdxs.reserveCapacity(limit)
+                for row in try Row.fetchAll(db.makeStatement(sql: """
+                                                                  SELECT wordId, startTimeStep 
+                                                                    FROM syncpaths 
+                                                                    WHERE bookId = \(id.rawValue)
+                                                                    ORDER by wordId
+                                                                    LIMIT \(limit)
+                                                                    OFFSET \(offset)
+                                                                  """)) {
+                    wordIdxs.append(row[0])
+                    audioIdxs.append(row[1])
+                }
+                let minIdx: Int = wordIdxs.first ?? 0
+                return (minIdx, audioIdxs)
+            } catch {
+                return (0, [])
+            }
+        }
     }
 }
