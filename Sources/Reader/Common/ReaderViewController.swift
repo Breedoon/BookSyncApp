@@ -72,7 +72,17 @@ class ReaderViewController: UIViewController, Loggable {
     private final var wordsLeftToReloadSyncPathCache = 5;  /* reload cache when reached Xth word from end of cache */
     private var syncPathCacheOffset = 0;
     private var syncPathCache: [Int] = [];
+    private var isSyncPathCacheUpdatingNow = false;
     private var latestWordIdx = -1;
+
+    private final var textCacheSize = 5000;  /* n characters of book retained in memory */
+    private final var charsLeftToReloadTextCache = 500;  /* reload cache when reached Xth character from end of cache */
+    private var textCacheOffset = 0;
+    private var textCache: String = "";
+    private var wordStartTextIdx: [Int] = [];
+    private var wordEndTextIdx: [Int] = [];
+    private var textWordOffset = 0;
+    private var isTextCacheUpdatingNow = false;
 
     var beingSeeked: Bool = false
 
@@ -111,6 +121,8 @@ class ReaderViewController: UIViewController, Loggable {
         self.highlights = highlights
         self.playButtonImageConfig = UIImage.SymbolConfiguration(pointSize: playButtonSize, weight: .bold, scale: .medium)
         self.syncPathCache.reserveCapacity(self.syncPathCacheSize + self.wordsLeftToReloadSyncPathCache)
+        self.wordStartTextIdx.reserveCapacity(self.textCacheSize + self.charsLeftToReloadTextCache)  // overestimate
+        self.wordEndTextIdx.reserveCapacity(self.textCacheSize + self.charsLeftToReloadTextCache)
 
         super.init(nibName: nil, bundle: nil)
         
@@ -540,8 +552,8 @@ class ReaderViewController: UIViewController, Loggable {
         // Check if we're correct number of words away from the end of cache
         if (self.latestWordIdx == -1) {
 //        if (wordIdxToCacheIdx(wordIdx: self.latestWordIdx) <= self.syncPathCache.count - self.wordsLeftToReloadSyncPathCache) {
-            updateSyncPathCache()
-            self.latestWordIdx = 0
+            updateTextCache()
+            latestWordIdx = 0
         }
         return
         elapsed += 0.02 * Double(SAPlayer.shared.rate ?? 1)  // fake update elapsed cuz by default it gets updated only ~3/sec
@@ -574,11 +586,6 @@ class ReaderViewController: UIViewController, Loggable {
 
     func wordIdxToLocator(currWordIdx: Int) -> Locator {
         let curr = navigator.currentLocation!
-//        evaluateScript(propertiesScript) { res in
-//            if case .failure(let error) = res {
-//                self.log(.error, error)
-//            }
-//        }
         return Locator(href: curr.href, type: curr.type, title: curr.type, locations: curr.locations,
                 text: Locator.Text(
                         after: ""/*String(Array(transcriptWords[currWordIdx...]).dropFirst(1).joined(separator: " ").prefix(200))*/,
@@ -595,11 +602,50 @@ class ReaderViewController: UIViewController, Loggable {
         return cacheIdx + self.syncPathCacheOffset
     }
 
+    private final let singleQuotes: Array<Character> = Array("'‘’‛")  // ensures words like "there's" count as one word
+    private func isPartOfWord(_ char: Character) -> Bool {
+        return char.isLetter || char.isNumber || singleQuotes.contains(char)
+    }
+
     private func updateTextCache() {
-        evaluateJavaScript("document.body.textContent.substr(0, 5000)") { result in
+        if isTextCacheUpdatingNow { return }  // don't re-execute if already executing
+        isTextCacheUpdatingNow = true
+        evaluateJavaScript("document.body.textContent.substr(\(textCacheOffset), \(textCacheOffset + textCacheSize))") { [self] result in
             switch result {
             case .success(let value):
-                print(value)
+                let newText: String = value as! String
+
+                // (same as in updateSyncCache) move last safety batch to the beginning and add new text at the end
+                let nTransferable: Int = min(charsLeftToReloadTextCache, textCache.count)
+                textCache = String(textCache.suffix(nTransferable) + newText)
+                let prevTextCacheOffset = textCacheOffset  // store previous offset (for proper word indexes)
+                textCacheOffset += newText.count  // commit offset
+
+                var currWordIdx = textWordOffset  // TODO: do caching of these based on uncached text
+
+                var prevIdx: String.Index;
+                if nTransferable != 0 {  // if transferred characters from previous cache, continue the latest word
+                    prevIdx = textCache.index(textCache.startIndex, offsetBy: nTransferable - 1)
+                } else {  // otherwise, use the first character
+                    prevIdx = textCache.index(textCache.startIndex, offsetBy: 0)
+                }
+                var isInWord = isPartOfWord(textCache[prevIdx])
+
+                for (idx, char) in textCache.enumerated() {
+                    if idx < nTransferable  // skip existing characters but preserve idx from beginning
+                               || isPartOfWord(char) == isInWord {  // either was in word and still is, or not and still isn't
+                        continue
+                    }
+                    if isPartOfWord(char) {  // start of new word
+                        currWordIdx += 1
+                        wordStartTextIdx.append(idx + prevTextCacheOffset)
+                        isInWord = true
+                    } else {
+                        wordEndTextIdx.append(idx - 1 + prevTextCacheOffset)  // mark previous position to end this word
+                        isInWord = false
+                    }
+                }
+                    isTextCacheUpdatingNow = false  // let update again  TODO: set to false even if fails
             case .failure(let error):
                 self.log(.error, error)
             }
@@ -607,9 +653,11 @@ class ReaderViewController: UIViewController, Loggable {
     }
 
     private func updateSyncPathCache() {
-        books.getSyncPath(id: self.bookId,
-                        limit: self.syncPathCacheSize,
-                        offset: self.syncPathCacheOffset).receive(on: DispatchQueue.main)
+        if isSyncPathCacheUpdatingNow { return }  // do not update at the same time
+        isSyncPathCacheUpdatingNow = true
+        books.getSyncPath(id: bookId,
+                        limit: syncPathCacheSize,
+                        offset: syncPathCacheOffset).receive(on: DispatchQueue.main)
                 .sink { completion in
                     switch completion {
                     case .finished:
@@ -635,6 +683,7 @@ class ReaderViewController: UIViewController, Loggable {
                     // Step 2: add new data: [###|_______] -> [###|#######]
                     self.syncPathCache[nTransferable..<nTransferable + audioIdxs.count] = audioIdxs[0..<audioIdxs.count]
                     self.syncPathCacheOffset += audioIdxs.count  // commit offset
+                    self.isSyncPathCacheUpdatingNow = false  // let update again
                 }
                 .store(in: &subscriptions)
     }
