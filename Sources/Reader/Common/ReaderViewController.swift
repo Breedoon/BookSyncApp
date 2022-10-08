@@ -51,7 +51,7 @@ class ReaderViewController: UIViewController, Loggable {
     private let highlightDecorationGroup = "highlights"
     private var currentHighlightCancellable: AnyCancellable?
 
-    private var audioBookPath: String = ""
+    private var audioBookPath: String? = nil
 
     private var lastLoadFailed: Bool = false
 
@@ -212,7 +212,7 @@ class ReaderViewController: UIViewController, Loggable {
             buttons.append(UIBarButtonItem(image: UIImage(systemName: "magnifyingglass"), style: .plain, target: self, action: #selector(showSearchUI)))
         }
 
-        if audioBookPath == "" {  // no audiobook added yet, so add button for that
+        if audioBookPath == nil {  // no audiobook added yet, so add button for that
             buttons.append(UIBarButtonItem(image: UIImage(systemName: "waveform.path.badge.plus"), style: .plain, target: self, action: #selector(importAudioBook)))
         }
         return buttons
@@ -234,9 +234,13 @@ class ReaderViewController: UIViewController, Loggable {
                     if audioBookPath != newAudioBookPath {  // value changed so need to update navbar
                         audioBookPath = newAudioBookPath
                         makeNavigationBar(animated: true)
-                        if audioBookPath != "", let url = URL(string: audioBookPath) {
-                            SAPlayer.shared.startSavedAudio(withSavedUrl: url)
+
+                        guard let newAudioBookPath = newAudioBookPath else {
+                            return
                         }
+                        if let url = URL(string: newAudioBookPath) {
+                            SAPlayer.shared.startSavedAudio(withSavedUrl: url)
+                        }  // TODO: fix player not working after exiting and reentering book with already audio
                     }
                 }
                 .store(in: &subscriptions)

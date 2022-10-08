@@ -32,7 +32,7 @@ struct Book: Codable {
     /// Current progression in the publication, extracted from the locator.
     var progression: Double
     /// Location of the audiobook attached to this book
-    var audioPath: String;
+    var audioPath: String?;
     /// Number of word in the text that has been played (0-indexed)
     var lastPlayedWordId: Int;
     /// Date of creation.
@@ -50,7 +50,7 @@ struct Book: Codable {
         self.coverPath = coverPath
         self.locator = locator
         self.progression = locator?.locations.totalProgression ?? 0
-        self.audioPath = audioPath ?? ""
+        self.audioPath = audioPath
         self.lastPlayedWordId = lastPlayedWordId ?? -1
         self.created = created
     }
