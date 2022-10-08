@@ -112,12 +112,13 @@ final class BookRepository {
 
     func addAudioPath(id: Book.Id, audioPath: URL) -> AnyPublisher<Void, Error> {
         db.write { db in
+            let url = (audioPath.isFileURL || audioPath.scheme == nil) ? audioPath.lastPathComponent : audioPath.absoluteString
             try db.execute(literal: """
                                         UPDATE book
-                                           SET audioPath = \(audioPath.absoluteString)
+                                           SET audioPath = \(url)
                                          WHERE id = \(id)
                                     """)
-            if (audioPath.absoluteString.contains("Experiences")) {
+            if (url.contains("Experiences")) {
                 let path = try String(contentsOfFile: "/Users/breedoon/Yandex.Disk.localized/JetBrainsProjects/PyCharm/SSS/CP/path-27min-short.csv")
                 let sql = "INSERT INTO syncpaths (bookId, wordId, startTimeStep) VALUES (\(id.rawValue)," + path.replacingOccurrences(of: "\n", with: ");\nINSERT INTO syncpaths (bookId, wordId, startTimeStep) VALUES (\(id.rawValue),") + ");"
                 try db.execute(sql: sql)

@@ -172,8 +172,6 @@ class ReaderViewController: UIViewController, Loggable {
             playerToolbar.heightAnchor.constraint(equalToConstant: 20 + playButtonSize * 1.5),  // TODO: make less arbitrary
         ])
 
-        let documents = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-
         subscribeToChanges()
         setPlayButtonState(forAudioPlayerState: playbackStatus)
         self.timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true, block: { _ in
@@ -236,11 +234,11 @@ class ReaderViewController: UIViewController, Loggable {
                         makeNavigationBar(animated: true)
 
                         guard let newAudioBookPath = newAudioBookPath else {
-                            return
+                            return // if new audio path is nil, just exit, otherwise, add new audio to player
                         }
-                        if let url = URL(string: newAudioBookPath) {
-                            SAPlayer.shared.startSavedAudio(withSavedUrl: url)
-                        }  // TODO: fix player not working after exiting and reentering book with already audio
+                        if let documents = try? FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true) {
+                            SAPlayer.shared.startSavedAudio(withSavedUrl: documents.appendingPathComponent(newAudioBookPath))
+                        }
                     }
                 }
                 .store(in: &subscriptions)
@@ -545,7 +543,7 @@ class ReaderViewController: UIViewController, Loggable {
             updateSyncPathCache()
             self.latestWordIdx = 0
         }
-        return  // TODO: remove
+        return
         elapsed += 0.02 * Double(SAPlayer.shared.rate ?? 1)  // fake update elapsed cuz by default it gets updated only ~3/sec
         let currAudioIdx: Int = Int(elapsed / 0.02)
 
