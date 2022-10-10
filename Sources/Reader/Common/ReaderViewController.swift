@@ -71,6 +71,7 @@ class ReaderViewController: UIViewController, Loggable {
     private final var syncPathCacheSize = 200;  /* words retained in memory at every time (fetched from db) */
     private final var wordsLeftToReloadSyncPathCache = 5;  /* reload cache when reached Xth word from end of cache */
     private var syncPathCacheOffset = 0;
+    private var syncPathCacheFirstIdx = 0;
     private var syncPathCache: [Int] = [];
     private var isSyncPathCacheUpdatingNow = false;
     private var latestWordIdx = -1;
@@ -78,6 +79,7 @@ class ReaderViewController: UIViewController, Loggable {
     private final var textCacheSize = 5000;  /* n characters of book retained in memory */
     private final var charsLeftToReloadTextCache = 500;  /* reload cache when reached Xth character from end of cache */
     private var textCacheOffset = 0;
+    private var textCacheFirstTextIdx = 0;
     private var textCache: String = "";
     private var wordStartTextIdx: [Int] = [];
     private var wordEndTextIdx: [Int] = [];
@@ -186,9 +188,12 @@ class ReaderViewController: UIViewController, Loggable {
 
         subscribeToChanges()
         setPlayButtonState(forAudioPlayerState: playbackStatus)
-        self.timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true, block: { _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true, block: { _ in
             self.updatePlayHighlight()
         })
+
+        updateSyncPathCache()
+        updateTextCache()
     }
     
     override func willMove(toParent parent: UIViewController?) {
@@ -546,60 +551,61 @@ class ReaderViewController: UIViewController, Loggable {
 
     func updatePlayHighlight() {
         if (playbackStatus != .playing) {
-            self.latestWordIdx = -1
             return  // doesn't need to do anything when player is not playing
         }
         // Check if we're correct number of words away from the end of cache
-        if (self.latestWordIdx == -1) {
-//        if (wordIdxToCacheIdx(wordIdx: self.latestWordIdx) <= self.syncPathCache.count - self.wordsLeftToReloadSyncPathCache) {
-            updateTextCache()
-            latestWordIdx = 0
+        if (wordIdxToCacheIdx(latestWordIdx) >= syncPathCache.count - wordsLeftToReloadSyncPathCache) {
+            updateSyncPathCache()
         }
-        return
+        // TODO: find a better way to load text on spread load
+        if textCache.count == 0 || latestWordIdx != -1 && wordEndTextIdx[latestWordIdx - textWordOffset] >= textCacheFirstTextIdx + textCache.count - charsLeftToReloadTextCache {
+            updateTextCache()
+            return
+        }
+
         elapsed += 0.02 * Double(SAPlayer.shared.rate ?? 1)  // fake update elapsed cuz by default it gets updated only ~3/sec
         let currAudioIdx: Int = Int(elapsed / 0.02)
 
-        var nextCacheIdx = wordIdxToCacheIdx(wordIdx: self.latestWordIdx) + 1
-        if (nextCacheIdx >= self.syncPathCache.count) {  // if exceeding current cache size
-            nextCacheIdx = wordIdxToCacheIdx(wordIdx: self.latestWordIdx) // keep latest word
+        var nextCacheIdx = wordIdxToCacheIdx(latestWordIdx) + 1
+        if (nextCacheIdx >= syncPathCache.count) {  // if exceeding current cache size
+            nextCacheIdx = wordIdxToCacheIdx(latestWordIdx) // keep latest word
         }
 
-        if (currAudioIdx < self.syncPathCache[nextCacheIdx]) { // next word didn't start yet
+        if (currAudioIdx < syncPathCache[nextCacheIdx]) { // next word didn't start yet
             return // already showing the needed word, no need to do anything
         }
 
         // If reached here, need to update the highlight
 
-        let currWordIdx = cacheIdxToWordIdx(cacheIdx: nextCacheIdx)
-        if let decorator = self.navigator as? DecorableNavigator {
-            decorator.apply(decorations: [], in: "player")  // remove previous highlight
+        let currWordIdx = cacheIdxToWordIdx(nextCacheIdx)
+        guard let decorator = navigator as? DecorableNavigator else {
+            return
         }
-
+        decorator.apply(decorations: [], in: "player")  // remove previous highlight
         latestWordIdx = currWordIdx  // save the current word to not re-highlight it
-        var locator = wordIdxToLocator(currWordIdx: currWordIdx)
-        if let decorator = self.navigator as? DecorableNavigator {
-            let decoration = Decoration(id: "playerWord", locator: locator, style: Decoration.Style.highlight(tint: .blue, isActive: false))
-            decorator.apply(decorations: [decoration], in: "player")
-        }
-//        TODO: move update transript here
+        let locator = wordIdxToLocator(currWordIdx)
+        let decoration = Decoration(id: "playerWord", locator: locator, style: Decoration.Style.highlight(tint: .blue, isActive: false))
+        decorator.apply(decorations: [decoration], in: "player")
     }
 
-    func wordIdxToLocator(currWordIdx: Int) -> Locator {
+    func wordIdxToLocator(_ wordIdx: Int) -> Locator {
         let curr = navigator.currentLocation!
+        let startIdx = textCache.index(textCache.startIndex, offsetBy: wordStartTextIdx[wordIdx] - textCacheFirstTextIdx)
+        let endIdx = textCache.index(textCache.startIndex, offsetBy: wordEndTextIdx[wordIdx] - textCacheFirstTextIdx + 1)
         return Locator(href: curr.href, type: curr.type, title: curr.type, locations: curr.locations,
                 text: Locator.Text(
-                        after: ""/*String(Array(transcriptWords[currWordIdx...]).dropFirst(1).joined(separator: " ").prefix(200))*/,
-                        before: ""/*String(Array(transcriptWords[0...currWordIdx]).dropLast(1).joined(separator: " ").prefix(200))*/,
-                        highlight: ""/*transcriptWords[currWordIdx]*/
+                        after: String(textCache[endIdx...].prefix(200)),
+                        before: String(textCache[..<startIdx].suffix(200)),
+                        highlight: String(textCache[startIdx..<endIdx])
                 ))
     }
 
-    private func wordIdxToCacheIdx(wordIdx: Int) -> Int {
-        return wordIdx - self.syncPathCacheOffset
+    private func wordIdxToCacheIdx(_ wordIdx: Int) -> Int {
+        wordIdx - syncPathCacheFirstIdx
     }
 
-    private func cacheIdxToWordIdx(cacheIdx: Int) -> Int {
-        return cacheIdx + self.syncPathCacheOffset
+    private func cacheIdxToWordIdx(_ cacheIdx: Int) -> Int {
+        cacheIdx + syncPathCacheFirstIdx
     }
 
     private final let singleQuotes: Array<Character> = Array("'‘’‛")  // ensures words like "there's" count as one word
@@ -618,7 +624,7 @@ class ReaderViewController: UIViewController, Loggable {
                 // (same as in updateSyncCache) move last safety batch to the beginning and add new text at the end
                 let nTransferable: Int = min(charsLeftToReloadTextCache, textCache.count)
                 textCache = String(textCache.suffix(nTransferable) + newText)
-                let prevTextCacheOffset = textCacheOffset  // store previous offset (for proper word indexes)
+                textCacheFirstTextIdx = textCacheOffset - nTransferable
                 textCacheOffset += newText.count  // commit offset
 
                 var currWordIdx = textWordOffset  // TODO: do caching of these based on uncached text
@@ -638,16 +644,17 @@ class ReaderViewController: UIViewController, Loggable {
                     }
                     if isPartOfWord(char) {  // start of new word
                         currWordIdx += 1
-                        wordStartTextIdx.append(idx + prevTextCacheOffset)
+                        wordStartTextIdx.append(idx + textCacheFirstTextIdx)
                         isInWord = true
                     } else {
-                        wordEndTextIdx.append(idx - 1 + prevTextCacheOffset)  // mark previous position to end this word
+                        wordEndTextIdx.append(idx - 1 + textCacheFirstTextIdx)  // mark previous position to end this word
                         isInWord = false
                     }
                 }
-                    isTextCacheUpdatingNow = false  // let update again  TODO: set to false even if fails
+                isTextCacheUpdatingNow = false  // let update again  TODO: set to false even if fails
             case .failure(let error):
                 self.log(.error, error)
+                isTextCacheUpdatingNow = false
             }
         }
     }
@@ -682,6 +689,7 @@ class ReaderViewController: UIViewController, Loggable {
 
                     // Step 2: add new data: [###|_______] -> [###|#######]
                     self.syncPathCache[nTransferable..<nTransferable + audioIdxs.count] = audioIdxs[0..<audioIdxs.count]
+                    self.syncPathCacheFirstIdx = self.syncPathCacheOffset - nTransferable
                     self.syncPathCacheOffset += audioIdxs.count  // commit offset
                     self.isSyncPathCacheUpdatingNow = false  // let update again
                 }
