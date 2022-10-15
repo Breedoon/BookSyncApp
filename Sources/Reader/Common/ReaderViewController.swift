@@ -191,6 +191,7 @@ class ReaderViewController: UIViewController, Loggable {
         timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true, block: { _ in
             self.updatePlayHighlight()
         })
+        RunLoop.main.add(timer, forMode: .common)
 
         updateSyncPathCache()
         updateTextCache()
@@ -614,6 +615,7 @@ class ReaderViewController: UIViewController, Loggable {
     }
 
     private func updateTextCache() {
+        // TODO: migrate to js?
         if isTextCacheUpdatingNow { return }  // don't re-execute if already executing
         isTextCacheUpdatingNow = true
         evaluateJavaScript("document.body.textContent.substr(\(textCacheOffset), \(textCacheOffset + textCacheSize))") { [self] result in
