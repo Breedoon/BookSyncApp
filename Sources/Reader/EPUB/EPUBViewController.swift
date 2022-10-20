@@ -21,6 +21,7 @@ class EPUBViewController: ReaderViewController {
     init(publication: Publication, locator: Locator?, bookId: Book.Id, books: BookRepository, bookmarks: BookmarkRepository, highlights: HighlightRepository, resourcesServer: ResourcesServer) {
         var navigatorEditingActions = EditingAction.defaultActions
         navigatorEditingActions.append(EditingAction(title: "Highlight", action: #selector(highlightSelection)))
+        navigatorEditingActions.append(EditingAction(title: "Start Playing", action: #selector(playFromSelection)))
         var navigatorConfig = EPUBNavigatorViewController.Configuration()
         navigatorConfig.editingActions = navigatorEditingActions
         

@@ -86,6 +86,8 @@ class ReaderViewController: UIViewController, Loggable {
     private var textWordOffset = 0;
     private var isTextCacheUpdatingNow = false;
 
+    var playerHighlightColor: UIColor = .blue
+
     var beingSeeked: Bool = false
 
     var downloadId: UInt?
@@ -557,14 +559,19 @@ class ReaderViewController: UIViewController, Loggable {
         // Check if we're correct number of words away from the end of cache
         if (wordIdxToCacheIdx(latestWordIdx) >= syncPathCache.count - wordsLeftToReloadSyncPathCache) {
             updateSyncPathCache()
+            if wordIdxToCacheIdx(latestWordIdx) >= syncPathCache.count {  // can't even display current word yet b/c it's not loaded
+                return
+            }
         }
         // TODO: find a better way to load text on spread load
         if textCache.count == 0 || latestWordIdx != -1 && wordEndTextIdx[latestWordIdx - textWordOffset] >= textCacheFirstTextIdx + textCache.count - charsLeftToReloadTextCache {
             updateTextCache()
-            return
+            if textCache.count == 0 || wordEndTextIdx.count + textWordOffset >= latestWordIdx {
+                return  // text currently not loaded at all so can't even display it
+            }
         }
 
-        elapsed += 0.02 * Double(SAPlayer.shared.rate ?? 1)  // fake update elapsed cuz by default it gets updated only ~3/sec
+        elapsed += 0.02 * Double(SAPlayer.shared.rate ?? 1)  // fake update elapsed cuz by default it gets updated only ~3 times/sec
         let currAudioIdx: Int = Int(elapsed / 0.02)
 
         var nextCacheIdx = wordIdxToCacheIdx(latestWordIdx) + 1
@@ -585,7 +592,7 @@ class ReaderViewController: UIViewController, Loggable {
         decorator.apply(decorations: [], in: "player")  // remove previous highlight
         latestWordIdx = currWordIdx  // save the current word to not re-highlight it
         let locator = wordIdxToLocator(currWordIdx)
-        let decoration = Decoration(id: "playerWord", locator: locator, style: Decoration.Style.highlight(tint: .blue, isActive: false))
+        let decoration = Decoration(id: "playerWord-\(currWordIdx)", locator: locator, style: Decoration.Style.highlight(tint: playerHighlightColor, isActive: false))
         decorator.apply(decorations: [decoration], in: "player")
     }
 
@@ -764,6 +771,24 @@ class ReaderViewController: UIViewController, Loggable {
         documentPicker.delegate = self
         present(documentPicker, animated: true, completion: nil)
 
+    }
+
+    @objc func playFromSelection() {
+        if let navigator = navigator as? SelectableNavigator, let selection = navigator.currentSelection, let locatorJsonStr = selection.locator.jsonString {
+            evaluateJavaScript("readium.positionAnchorJSONFromLocator(\(locatorJsonStr))") { [self] result in
+                switch result {
+                case .success(let value):
+                    if let location = value as? Dictionary<String, Int> {
+                        let startTextIdx = location["start"]
+//                        updateTextCache()
+//                        SAPlayer.shared.seekTo(seconds: <#T##Double##Swift.Double#>)
+                    }
+                case .failure(let error):
+                    self.log(.error, error)
+                }
+            }
+            navigator.clearSelection()
+        }
     }
 
     /// Moves the given `sourceURL` to the user Documents/ directory.
