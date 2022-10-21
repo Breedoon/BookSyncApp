@@ -13,7 +13,7 @@ import R2Shared // for UserProperty
 class ColorScheme {
     private(set) var mainColor: Color = Color.white
     private(set) var textColor: Color = Color.black
-    
+
     func update(with appearance: UserProperty) {
         mainColor = Color(AssociatedColors.getColors(for: appearance).mainColor)
         textColor = Color(AssociatedColors.getColors(for: appearance).textColor)
@@ -22,10 +22,11 @@ class ColorScheme {
 
 struct ColorModifier: ViewModifier {
     let colorScheme: ColorScheme
-    func body(content: Content) -> some View {
+
+    func body(content: Self.Content) -> some View {
         content
-            .foregroundColor(colorScheme.textColor)
-            .background(colorScheme.mainColor)
+                .foregroundColor(colorScheme.textColor)
+                .background(colorScheme.mainColor)
     }
 }
 
