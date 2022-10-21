@@ -193,6 +193,7 @@ class ReaderViewController: UIViewController, Loggable {
         // Restore library's default UI colors
         navigationController?.navigationBar.tintColor = .black
         navigationController?.navigationBar.barTintColor = .white
+        SAPlayer.shared.clear()
     }
     
     
