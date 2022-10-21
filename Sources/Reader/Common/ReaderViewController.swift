@@ -77,6 +77,7 @@ class ReaderViewController: UIViewController, Loggable {
     private var latestWordIdx = -1;
 
     var playerHighlightColor: UIColor = .blue
+    var playerHighlightAlpha: Double = 0.3
 
     var beingSeeked: Bool = false
 
@@ -571,8 +572,8 @@ class ReaderViewController: UIViewController, Loggable {
 
         let currWordIdx = cacheIdxToWordIdx(nextCacheIdx)
 
-        evaluateJavaScript("document.getElementById(\"word-\(currWordIdx)\").style.background = \"rgba(0, 0, 255, 0.3)\"")
-        evaluateJavaScript("document.getElementById(\"word-\(currWordIdx - 1)\").style.background = \"\"")
+        highlightNthWord(currWordIdx)
+
         latestWordIdx = currWordIdx  // save the current word to not re-highlight it
     }
 
@@ -621,8 +622,8 @@ class ReaderViewController: UIViewController, Loggable {
                 .store(in: &subscriptions)
     }
 
-    func evaluateJavaScript(_ script: String, completion: ((Result<Any, Error>) -> Void)? = nil) {
-        (self.navigator as! R2Navigator.EPUBNavigatorViewController).evaluateJavaScript(script, completion: completion)
+    func highlightNthWord(_ wordIdx: Int) {
+        toast(NSLocalizedString("reader_player_format_not_supported", comment: "Method for word highlighting has not been overridden in format-specific view controller"), on: self.view, duration: 2)
     }
 
     func subscribeToChanges() {
@@ -687,23 +688,6 @@ class ReaderViewController: UIViewController, Loggable {
         documentPicker.delegate = self
         present(documentPicker, animated: true, completion: nil)
 
-    }
-
-    @objc func playFromSelection() {
-        if let navigator = navigator as? SelectableNavigator, let selection = navigator.currentSelection, let locatorJsonStr = selection.locator.jsonString {
-            evaluateJavaScript("readium.positionAnchorJSONFromLocator(\(locatorJsonStr))") { [self] result in
-                switch result {
-                case .success(let value):
-                    if let location = value as? Dictionary<String, Int> {
-                        let startTextIdx = location["start"]
-//                        SAPlayer.shared.seekTo(seconds: <#T##Double##Swift.Double#>)
-                    }
-                case .failure(let error):
-                    self.log(.error, error)
-                }
-            }
-            navigator.clearSelection()
-        }
     }
 
     /// Moves the given `sourceURL` to the user Documents/ directory.

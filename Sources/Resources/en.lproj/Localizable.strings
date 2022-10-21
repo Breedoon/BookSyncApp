@@ -138,6 +138,7 @@
 /* Success message after returning a publication */
 "reader_drm_return_success_message" = "Publication returned successfully.";
 
+"reader_player_format_not_supported" = "This book's format is currently not supported for synchronized reading";
 
 /* MARK: LCP */
 

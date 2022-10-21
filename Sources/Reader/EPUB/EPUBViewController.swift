@@ -17,6 +17,7 @@ import R2Navigator
 class EPUBViewController: ReaderViewController {
     var popoverUserconfigurationAnchor: UIBarButtonItem?
     var userSettingNavigationController: UserSettingsNavigationController
+    var playerHighlightColorCSS = "rgba(255, 255, 0, 0.3)"
     
     init(publication: Publication, locator: Locator?, bookId: Book.Id, books: BookRepository, bookmarks: BookmarkRepository, highlights: HighlightRepository, resourcesServer: ResourcesServer) {
         var navigatorEditingActions = EditingAction.defaultActions
@@ -35,7 +36,9 @@ class EPUBViewController: ReaderViewController {
             (settingsStoryboard.instantiateViewController(withIdentifier: "AdvancedSettingsViewController") as! AdvancedSettingsViewController)
         
         super.init(navigator: navigator, publication: publication, bookId: bookId, books: books, bookmarks: bookmarks, highlights: highlights)
-        
+
+        playerHighlightColorCSS = playerHighlightColor.cssValue(alpha: playerHighlightAlpha)
+
         navigator.delegate = self
     }
     
@@ -121,6 +124,35 @@ class EPUBViewController: ReaderViewController {
             navigator.clearSelection()
         }
     }
+
+    func evaluateJavaScript(_ script: String, completion: ((Result<Any, Error>) -> Void)? = nil) {
+        if let controller = self.navigator as? R2Navigator.EPUBNavigatorViewController {
+            controller.evaluateJavaScript(script, completion: completion)
+        }
+    }
+
+    override func highlightNthWord(_ wordIdx: Int) {
+        evaluateJavaScript("document.getElementById(\"word-\(wordIdx)\").style.background = \"\(playerHighlightColorCSS)\"")
+        evaluateJavaScript("document.getElementById(\"word-\(wordIdx - 1)\").style.background = \"\"")
+    }
+
+
+    @objc func playFromSelection() {
+        if let navigator = navigator as? SelectableNavigator, let selection = navigator.currentSelection, let locatorJsonStr = selection.locator.jsonString {
+            evaluateJavaScript("readium.positionAnchorJSONFromLocator(\(locatorJsonStr))") { [self] result in
+                switch result {
+                case .success(let value):
+                    if let location = value as? Dictionary<String, Int> {
+//                        let startTextIdx = location["start"]
+//                        SAPlayer.shared.seekTo(seconds: <#T##Double##Swift.Double#>)
+                    }
+                case .failure(let error):
+                    self.log(.error, error)
+                }
+            }
+            navigator.clearSelection()
+        }
+    }
 }
 
 extension EPUBViewController: EPUBNavigatorDelegate {
@@ -162,5 +194,5 @@ extension EPUBViewController: UserSettingsNavigationControllerDelegate {
         
         navigationController?.navigationBar.titleTextAttributes = [NSAttributedString.Key.foregroundColor: colors.textColor]
     }
-    
+
 }
