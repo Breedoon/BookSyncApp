@@ -75,16 +75,6 @@ class ReaderViewController: UIViewController, Loggable {
     private var isSyncPathCacheUpdatingNow = false;
     private var latestWordIdx = -1;
 
-    private final var textCacheSize = 100;  /* n characters of book retained in memory */
-    private final var charsLeftToReloadTextCache = 20;  /* rel oad cache when reached Xth character from end of cache */
-    private var textCacheOffset = 0;
-    private var textCacheFirstTextIdx = 0;
-    private var textCache: String = "";
-    private var wordStartTextIdx: [Int] = [];
-    private var wordEndTextIdx: [Int] = [];
-    private var textWordOffset = 0;
-    private var isTextCacheUpdatingNow = false;
-
     var playerHighlightColor: UIColor = .blue
 
     var beingSeeked: Bool = false
@@ -124,8 +114,6 @@ class ReaderViewController: UIViewController, Loggable {
         self.highlights = highlights
         self.playButtonImageConfig = UIImage.SymbolConfiguration(pointSize: playButtonSize, weight: .bold, scale: .medium)
         self.syncPathCache.reserveCapacity(self.syncPathCacheSize + self.wordsLeftToReloadSyncPathCache)
-        self.wordStartTextIdx.reserveCapacity(self.textCacheSize + self.charsLeftToReloadTextCache)  // overestimate
-        self.wordEndTextIdx.reserveCapacity(self.textCacheSize + self.charsLeftToReloadTextCache)
 
         super.init(nibName: nil, bundle: nil)
         
@@ -561,13 +549,6 @@ class ReaderViewController: UIViewController, Loggable {
                 return
             }
         }
-        // TODO: find a better way to load text on spread load
-        if textCache.count == 0 || latestWordIdx != -1 && wordEndTextIdx[latestWordIdx - textWordOffset] >= textCacheFirstTextIdx + textCache.count - charsLeftToReloadTextCache {
-            updateTextCache()
-            if textCache.count == 0 || wordEndTextIdx.count + textWordOffset >= latestWordIdx {
-                return  // text currently not loaded at all so can't even display it
-            }
-        }
 
         elapsed += 0.02 * Double(SAPlayer.shared.rate ?? 1)  // fake update elapsed cuz by default it gets updated only ~3 times/sec
         let currAudioIdx: Int = Int(elapsed / 0.02)
@@ -590,76 +571,12 @@ class ReaderViewController: UIViewController, Loggable {
         latestWordIdx = currWordIdx  // save the current word to not re-highlight it
     }
 
-    func wordIdxToLocator(_ wordIdx: Int) -> Locator {
-        let curr = navigator.currentLocation!
-        let startIdx = textCache.index(textCache.startIndex, offsetBy: wordStartTextIdx[wordIdx] - textCacheFirstTextIdx)
-        let endIdx = textCache.index(textCache.startIndex, offsetBy: wordEndTextIdx[wordIdx] - textCacheFirstTextIdx + 1)
-        return Locator(href: curr.href, type: curr.type, title: curr.type, locations: curr.locations,
-                text: Locator.Text(
-                        after: String(textCache[endIdx...].prefix(200)),
-                        before: String(textCache[..<startIdx].suffix(200)),
-                        highlight: String(textCache[startIdx..<endIdx])
-                ))
-    }
-
     private func wordIdxToCacheIdx(_ wordIdx: Int) -> Int {
         wordIdx - syncPathCacheFirstIdx
     }
 
     private func cacheIdxToWordIdx(_ cacheIdx: Int) -> Int {
         cacheIdx + syncPathCacheFirstIdx
-    }
-
-    private final let singleQuotes: Array<Character> = Array("'‘’‛")  // ensures words like "there's" count as one word
-    private func isPartOfWord(_ char: Character) -> Bool {
-        return char.isLetter || char.isNumber || singleQuotes.contains(char)
-    }
-
-    private func updateTextCache() {
-        // TODO: migrate to js?
-        if isTextCacheUpdatingNow { return }  // don't re-execute if already executing
-        isTextCacheUpdatingNow = true
-        evaluateJavaScript("document.body.textContent.substr(\(textCacheOffset), \(textCacheOffset + textCacheSize))") { [self] result in
-            switch result {
-            case .success(let value):
-                let newText: String = value as! String
-
-                // (same as in updateSyncCache) move last safety batch to the beginning and add new text at the end
-                let nTransferable: Int = min(charsLeftToReloadTextCache, textCache.count)
-                textCache = String(textCache.suffix(nTransferable) + newText)
-                textCacheFirstTextIdx = textCacheOffset - nTransferable
-                textCacheOffset += newText.count  // commit offset
-
-                var currWordIdx = textWordOffset  // TODO: do caching of these based on uncached text
-
-                var prevIdx: String.Index;
-                if nTransferable != 0 {  // if transferred characters from previous cache, continue the latest word
-                    prevIdx = textCache.index(textCache.startIndex, offsetBy: nTransferable - 1)
-                } else {  // otherwise, use the first character
-                    prevIdx = textCache.index(textCache.startIndex, offsetBy: 0)
-                }
-                var isInWord = isPartOfWord(textCache[prevIdx])
-
-                for (idx, char) in textCache.enumerated() {
-                    if idx < nTransferable  // skip existing characters but preserve idx from beginning
-                               || isPartOfWord(char) == isInWord {  // either was in word and still is, or not and still isn't
-                        continue
-                    }
-                    if isPartOfWord(char) {  // start of new word
-                        currWordIdx += 1
-                        wordStartTextIdx.append(idx + textCacheFirstTextIdx)
-                        isInWord = true
-                    } else {
-                        wordEndTextIdx.append(idx - 1 + textCacheFirstTextIdx)  // mark previous position to end this word
-                        isInWord = false
-                    }
-                }
-                isTextCacheUpdatingNow = false  // let update again  TODO: set to false even if fails
-            case .failure(let error):
-                self.log(.error, error)
-                isTextCacheUpdatingNow = false
-            }
-        }
     }
 
     private func updateSyncPathCache() {
@@ -774,7 +691,6 @@ class ReaderViewController: UIViewController, Loggable {
                 case .success(let value):
                     if let location = value as? Dictionary<String, Int> {
                         let startTextIdx = location["start"]
-//                        updateTextCache()
 //                        SAPlayer.shared.seekTo(seconds: <#T##Double##Swift.Double#>)
                     }
                 case .failure(let error):
