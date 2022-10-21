@@ -63,7 +63,8 @@ class ReaderViewController: UIViewController, Loggable {
     private let rateButtonSize = CGFloat(15)
     private let rateOptions = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
     private let rateOptionsLabels = ["½×", "¾×", "1×", "1¼×", "1½×", "1¾×", "2×"]
-    private var rateOptionsSelectedIdx = 2  // 1x by default
+    private final var rateOptionsDefaultIdx = 2  // 1x by default
+    private var rateOptionsSelectedIdx: Int
 
     private var timer = Timer()
 
@@ -114,6 +115,7 @@ class ReaderViewController: UIViewController, Loggable {
         self.highlights = highlights
         self.playButtonImageConfig = UIImage.SymbolConfiguration(pointSize: playButtonSize, weight: .bold, scale: .medium)
         self.syncPathCache.reserveCapacity(self.syncPathCacheSize + self.wordsLeftToReloadSyncPathCache)
+        self.rateOptionsSelectedIdx = rateOptionsDefaultIdx
 
         super.init(nibName: nil, bundle: nil)
         
@@ -169,6 +171,8 @@ class ReaderViewController: UIViewController, Loggable {
             positionLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             positionLabel.bottomAnchor.constraint(equalTo: navigator.view.bottomAnchor, constant: -20)
         ])
+
+        SAPlayer.shared.rate = Float(rateOptions[rateOptionsDefaultIdx])
 
         stackView.addArrangedSubview(playerToolbar)
         NSLayoutConstraint.activate([
