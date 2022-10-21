@@ -18,7 +18,6 @@ import R2Shared
 import SwiftSoup
 import WebKit
 import SwiftUI
-import SwiftAudioEx
 import SwiftAudioPlayer
 
 
@@ -68,16 +67,16 @@ class ReaderViewController: UIViewController, Loggable {
 
     private var timer = Timer()
 
-    private final var syncPathCacheSize = 200;  /* words retained in memory at every time (fetched from db) */
-    private final var wordsLeftToReloadSyncPathCache = 5;  /* reload cache when reached Xth word from end of cache */
+    private final var syncPathCacheSize = 20;  /* words retained in memory at every time (fetched from db) */
+    private final var wordsLeftToReloadSyncPathCache = 2;  /* reload cache when reached Xth word from end of cache */
     private var syncPathCacheOffset = 0;
     private var syncPathCacheFirstIdx = 0;
     private var syncPathCache: [Int] = [];
     private var isSyncPathCacheUpdatingNow = false;
     private var latestWordIdx = -1;
 
-    private final var textCacheSize = 5000;  /* n characters of book retained in memory */
-    private final var charsLeftToReloadTextCache = 500;  /* reload cache when reached Xth character from end of cache */
+    private final var textCacheSize = 100;  /* n characters of book retained in memory */
+    private final var charsLeftToReloadTextCache = 20;  /* rel oad cache when reached Xth character from end of cache */
     private var textCacheOffset = 0;
     private var textCacheFirstTextIdx = 0;
     private var textCache: String = "";
@@ -196,7 +195,6 @@ class ReaderViewController: UIViewController, Loggable {
         RunLoop.main.add(timer, forMode: .common)
 
         updateSyncPathCache()
-        updateTextCache()
     }
     
     override func willMove(toParent parent: UIViewController?) {
@@ -586,14 +584,10 @@ class ReaderViewController: UIViewController, Loggable {
         // If reached here, need to update the highlight
 
         let currWordIdx = cacheIdxToWordIdx(nextCacheIdx)
-        guard let decorator = navigator as? DecorableNavigator else {
-            return
-        }
-        decorator.apply(decorations: [], in: "player")  // remove previous highlight
+
+        evaluateJavaScript("document.getElementById(\"word-\(currWordIdx)\").style.background = \"rgba(0, 0, 255, 0.3)\"")
+        evaluateJavaScript("document.getElementById(\"word-\(currWordIdx - 1)\").style.background = \"\"")
         latestWordIdx = currWordIdx  // save the current word to not re-highlight it
-        let locator = wordIdxToLocator(currWordIdx)
-        let decoration = Decoration(id: "playerWord-\(currWordIdx)", locator: locator, style: Decoration.Style.highlight(tint: playerHighlightColor, isActive: false))
-        decorator.apply(decorations: [decoration], in: "player")
     }
 
     func wordIdxToLocator(_ wordIdx: Int) -> Locator {
