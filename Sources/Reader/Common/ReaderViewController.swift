@@ -630,6 +630,7 @@ class ReaderViewController: UIViewController, Loggable {
         syncPathCache = []
         syncPathCache.reserveCapacity(syncPathCacheSize)
         latestWordIdx = wordIdx
+        highlightNthWord(wordIdx)
         updateSyncPathCache { [self] in
             SAPlayer.shared.seekTo(seconds: 0.02 * Double(syncPathCache[wordIdxToCacheIdx(wordIdx)]))
             if startPlaying && playbackStatus != .playing {
