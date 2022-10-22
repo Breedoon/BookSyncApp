@@ -559,7 +559,9 @@ class ReaderViewController: UIViewController, Loggable {
         if (nextCacheIdx >= syncPathCache.count) {  // if exceeding current cache size
             nextCacheIdx = wordIdxToCacheIdx(latestWordIdx) // keep latest word
         }
-
+        if !((0 <= nextCacheIdx) && (nextCacheIdx < syncPathCache.count)) {
+            return  // something went wrong, index out of range, just skip until it loads
+        }
         if (currAudioIdx < syncPathCache[nextCacheIdx]) { // next word didn't start yet
             return // already showing the needed word, no need to do anything
         }
@@ -623,17 +625,14 @@ class ReaderViewController: UIViewController, Loggable {
     }
 
 
-    func startPlayingFromWordIdx(_ wordIdx: Int = 0) {
-        if playbackStatus == .playing {
-            togglePlay()
-        }
+    func seekToWordIdx(_ wordIdx: Int = 0, startPlaying: Bool = false) {
         syncPathCacheOffset = wordIdx
         syncPathCache = []
         syncPathCache.reserveCapacity(syncPathCacheSize)
         latestWordIdx = wordIdx
         updateSyncPathCache { [self] in
             SAPlayer.shared.seekTo(seconds: 0.02 * Double(syncPathCache[wordIdxToCacheIdx(wordIdx)]))
-            if playbackStatus != .playing {
+            if startPlaying && playbackStatus != .playing {
                 togglePlay()
             }
         }
