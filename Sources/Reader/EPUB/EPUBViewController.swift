@@ -21,7 +21,6 @@ class EPUBViewController: ReaderViewController {
     
     init(publication: Publication, locator: Locator?, bookId: Book.Id, books: BookRepository, bookmarks: BookmarkRepository, highlights: HighlightRepository, resourcesServer: ResourcesServer) {
         var navigatorEditingActions = EditingAction.defaultActions
-        navigatorEditingActions.append(EditingAction(title: "Highlight", action: #selector(highlightSelection)))
         navigatorEditingActions.append(EditingAction(title: "Start Playing", action: #selector(playFromSelection)))
         var navigatorConfig = EPUBNavigatorViewController.Configuration()
         navigatorConfig.editingActions = navigatorEditingActions
@@ -141,7 +140,7 @@ class EPUBViewController: ReaderViewController {
             switch result {
             case .success(let value):
                 if let wordIdx = value as? Int {
-                    startPlayingFromWordIdx(wordIdx)
+                    seekToWordIdx(wordIdx)
                 } else {
                     toast(NSLocalizedString("reader_player_cannot_play_from_selection", comment: "Error in js function to get word id from highlight"), on: self.view, duration: 2)
                 }
