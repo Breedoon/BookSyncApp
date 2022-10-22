@@ -74,7 +74,7 @@ class ReaderViewController: UIViewController, Loggable {
     private var syncPathCacheFirstIdx = 0;
     private var syncPathCache: [Int] = [];
     private var isSyncPathCacheUpdatingNow = false;
-    private var latestWordIdx = -1;
+    var latestWordIdx = -1;  // TODO: make into an optional value
 
     var playerHighlightColor: UIColor = .blue
     var playerHighlightAlpha: Double = 0.3
@@ -191,6 +191,7 @@ class ReaderViewController: UIViewController, Loggable {
         navigationController?.navigationBar.tintColor = .black
         navigationController?.navigationBar.barTintColor = .white
         SAPlayer.shared.clear()
+        timer.invalidate()
     }
     
     
@@ -236,6 +237,7 @@ class ReaderViewController: UIViewController, Loggable {
                         return
                     }
                     let book = book!
+                    latestWordIdx = book.lastPlayedWordId
                     let newAudioBookPath = book.audioPath
                     if audioBookPath != newAudioBookPath {  // value changed so need to update navbar
                         audioBookPath = newAudioBookPath
@@ -573,6 +575,8 @@ class ReaderViewController: UIViewController, Loggable {
         highlightNthWord(currWordIdx)
 
         latestWordIdx = currWordIdx  // save the current word to not re-highlight it
+
+        saveLatestWordIdx()
     }
 
     private func wordIdxToCacheIdx(_ wordIdx: Int) -> Int {
@@ -643,6 +647,20 @@ class ReaderViewController: UIViewController, Loggable {
         toast(NSLocalizedString("reader_player_format_not_supported", comment: "Method for word highlighting has not been overridden in format-specific view controller"), on: self.view, duration: 2)
     }
 
+    func saveLatestWordIdx() {
+        books.saveLastPlayedWordId(id: bookId, wordIdx: latestWordIdx)
+                .receive(on: DispatchQueue.main)
+                .sink { completion in
+                    switch completion {
+                    case .finished:
+                        self.log(.debug, "Successfully updated play position in database")
+                    case .failure(let error):
+                        self.log(.error, error)
+                    }
+                } receiveValue: { _ in }
+
+    }
+
     func subscribeToPlayerChanges() {
         elapsedId = SAPlayer.Updates.ElapsedTime.subscribe { [weak self] (position) in
             guard let self = self else { return }
@@ -665,6 +683,7 @@ class ReaderViewController: UIViewController, Loggable {
                 RunLoop.main.add(self.timer, forMode: .common)
             } else {  // stopped
                 self.timer.invalidate()
+//                self.saveLatestWordIdx()
             }
 
             self.playbackStatus = playing

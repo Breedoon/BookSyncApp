@@ -151,7 +151,9 @@ class EPUBViewController: ReaderViewController {
 }
 
 extension EPUBViewController: EPUBNavigatorDelegate {
-    
+    func spreadViewDidLoad() {
+        seekToWordIdx(latestWordIdx)
+    }
 }
 
 extension EPUBViewController: UIGestureRecognizerDelegate {
