@@ -105,7 +105,7 @@ final class BookRepository {
     }
 
     func get(id: Book.Id) -> AnyPublisher<Book?, Error> {
-        db.observe { db in
+        db.read { db in
             return try Book.filter(Book.Columns.id == id).fetchOne(db)
         }
     }
@@ -149,6 +149,16 @@ final class BookRepository {
             } catch {
                 return (0, [])
             }
+        }
+    }
+
+    func saveLastPlayedWordId(id: Book.Id, wordIdx: Int) -> AnyPublisher<Void, Error> {
+        db.write { db in
+            try db.execute(literal: """
+                                        UPDATE book
+                                           SET lastPlayedWordId = \(wordIdx)
+                                         WHERE id = \(id.rawValue)
+                                    """)
         }
     }
 }
