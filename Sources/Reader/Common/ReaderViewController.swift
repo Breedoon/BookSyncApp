@@ -585,7 +585,7 @@ class ReaderViewController: UIViewController, Loggable {
         cacheIdx + syncPathCacheFirstIdx
     }
 
-    private func updateSyncPathCache() {
+    private func updateSyncPathCache(completion: (() -> Void)? = nil) {
         if isSyncPathCacheUpdatingNow { return }  // do not update at the same time
         isSyncPathCacheUpdatingNow = true
         books.getSyncPath(id: bookId,
@@ -618,8 +618,29 @@ class ReaderViewController: UIViewController, Loggable {
                     self.syncPathCacheFirstIdx = self.syncPathCacheOffset - nTransferable
                     self.syncPathCacheOffset += audioIdxs.count  // commit offset
                     self.isSyncPathCacheUpdatingNow = false  // let update again
+
+                    if let completion = completion {
+                        completion()
+                    }
                 }
                 .store(in: &subscriptions)
+    }
+
+
+    func startPlayingFromWordIdx(_ wordIdx: Int = 0) {
+        if playbackStatus == .playing {
+            togglePlay("")
+        }
+        syncPathCacheOffset = wordIdx
+        syncPathCache = []
+        syncPathCache.reserveCapacity(syncPathCacheSize)
+        latestWordIdx = wordIdx
+        updateSyncPathCache { [self] in
+            SAPlayer.shared.seekTo(seconds: 0.02 * Double(syncPathCache[wordIdxToCacheIdx(wordIdx)]))
+            if playbackStatus != .playing {
+                togglePlay("")
+            }
+        }
     }
 
     func highlightNthWord(_ wordIdx: Int) {
@@ -640,6 +661,8 @@ class ReaderViewController: UIViewController, Loggable {
 
         playingStatusId = SAPlayer.Updates.PlayingStatus.subscribe { [weak self] (playing) in
             guard let self = self else { return }
+
+            // TODO: Consider starting timer here only if playing
 
             self.playbackStatus = playing
 

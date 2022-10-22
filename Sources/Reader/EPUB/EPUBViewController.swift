@@ -136,21 +136,18 @@ class EPUBViewController: ReaderViewController {
         evaluateJavaScript("document.getElementById(\"word-\(wordIdx - 1)\").style.background = \"\"")
     }
 
-
     @objc func playFromSelection() {
-        if let navigator = navigator as? SelectableNavigator, let selection = navigator.currentSelection, let locatorJsonStr = selection.locator.jsonString {
-            evaluateJavaScript("readium.positionAnchorJSONFromLocator(\(locatorJsonStr))") { [self] result in
-                switch result {
-                case .success(let value):
-                    if let location = value as? Dictionary<String, Int> {
-//                        let startTextIdx = location["start"]
-//                        SAPlayer.shared.seekTo(seconds: <#T##Double##Swift.Double#>)
-                    }
-                case .failure(let error):
-                    self.log(.error, error)
+        evaluateJavaScript("getSelectedWord()") { [self] result in
+            switch result {
+            case .success(let value):
+                if let wordIdx = value as? Int {
+                    startPlayingFromWordIdx(wordIdx)
+                } else {
+                    toast(NSLocalizedString("reader_player_cannot_play_from_selection", comment: "Error in js function to get word id from highlight"), on: self.view, duration: 2)
                 }
+            case .failure(let error):
+                self.log(.error, error)
             }
-            navigator.clearSelection()
         }
     }
 }
