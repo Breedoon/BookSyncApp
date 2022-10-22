@@ -540,7 +540,7 @@ class ReaderViewController: UIViewController, Loggable {
                 : UIImage(systemName: "play", withConfiguration: playButtonImageConfig), for: .normal)
     }
 
-    @objc func togglePlay(_ sender: Any) {
+    @objc func togglePlay() {
         SAPlayer.shared.togglePlayAndPause()
     }
 
@@ -629,7 +629,7 @@ class ReaderViewController: UIViewController, Loggable {
 
     func startPlayingFromWordIdx(_ wordIdx: Int = 0) {
         if playbackStatus == .playing {
-            togglePlay("")
+            togglePlay()
         }
         syncPathCacheOffset = wordIdx
         syncPathCache = []
@@ -638,7 +638,7 @@ class ReaderViewController: UIViewController, Loggable {
         updateSyncPathCache { [self] in
             SAPlayer.shared.seekTo(seconds: 0.02 * Double(syncPathCache[wordIdxToCacheIdx(wordIdx)]))
             if playbackStatus != .playing {
-                togglePlay("")
+                togglePlay()
             }
         }
     }
