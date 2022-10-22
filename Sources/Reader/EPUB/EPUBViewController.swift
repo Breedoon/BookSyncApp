@@ -131,8 +131,7 @@ class EPUBViewController: ReaderViewController {
     }
 
     override func highlightNthWord(_ wordIdx: Int) {
-        evaluateJavaScript("document.getElementById(\"word-\(wordIdx)\").style.background = \"\(playerHighlightColorCSS)\"")
-        evaluateJavaScript("document.getElementById(\"word-\(wordIdx - 1)\").style.background = \"\"")
+        evaluateJavaScript("highlightWordIdx(\(wordIdx), \"\(playerHighlightColorCSS)\")")
     }
 
     @objc func playFromSelection() {
