@@ -180,12 +180,8 @@ class ReaderViewController: UIViewController, Loggable {
             playerToolbar.heightAnchor.constraint(equalToConstant: 20 + playButtonSize * 1.5),  // TODO: make less arbitrary
         ])
 
-        subscribeToChanges()
+        subscribeToPlayerChanges()
         setPlayButtonState(forAudioPlayerState: playbackStatus)
-        timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true, block: { _ in
-            self.updatePlayHighlight()
-        })
-        RunLoop.main.add(timer, forMode: .common)
 
         updateSyncPathCache()
     }
@@ -647,7 +643,7 @@ class ReaderViewController: UIViewController, Loggable {
         toast(NSLocalizedString("reader_player_format_not_supported", comment: "Method for word highlighting has not been overridden in format-specific view controller"), on: self.view, duration: 2)
     }
 
-    func subscribeToChanges() {
+    func subscribeToPlayerChanges() {
         elapsedId = SAPlayer.Updates.ElapsedTime.subscribe { [weak self] (position) in
             guard let self = self else { return }
 
@@ -662,7 +658,14 @@ class ReaderViewController: UIViewController, Loggable {
         playingStatusId = SAPlayer.Updates.PlayingStatus.subscribe { [weak self] (playing) in
             guard let self = self else { return }
 
-            // TODO: Consider starting timer here only if playing
+            if (playing == .playing) {  // if started playing, do highlighting
+                self.timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true, block: { _ in
+                    self.updatePlayHighlight()
+                })
+                RunLoop.main.add(self.timer, forMode: .common)
+            } else {  // stopped
+                self.timer.invalidate()
+            }
 
             self.playbackStatus = playing
 
