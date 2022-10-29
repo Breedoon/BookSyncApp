@@ -636,6 +636,7 @@ class ReaderViewController: UIViewController, Loggable {
         latestWordIdx = wordIdx
         highlightNthWord(wordIdx)
         updateSyncPathCache { [self] in
+            if !(0..<syncPathCache.count ~= wordIdxToCacheIdx(wordIdx)) { return }
             SAPlayer.shared.seekTo(seconds: 0.02 * Double(syncPathCache[wordIdxToCacheIdx(wordIdx)]))
             if startPlaying && playbackStatus != .playing {
                 togglePlay()
