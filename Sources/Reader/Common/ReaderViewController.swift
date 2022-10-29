@@ -750,22 +750,7 @@ class ReaderViewController: UIViewController, Loggable {
 
                         do {
                             try FileManager.default.copyItem(at: source, to: destination)
-                            books.addAudioPath(id: bookId, audioPath: destination)
-                                    .receive(on: DispatchQueue.main)
-                                    .sink { completion in
-                                        switch completion {
-                                        case .finished:
-                                            print("Finished audio link updating")
-                                        case .failure(let error):
-                                            print(error)
-                                            self.moduleDelegate?.presentError(error, from: self)
-                                        }
-                                    } receiveValue: {}
-                                    .store(in: &subscriptions)
-                            // When returning .finished for some reason,
-                            // it spirals into infinite loop and keeps copying files, so have to throw an error
-                            // FIXME: Fix infinite loop when returning .finished
-                            return promise(.failure(LibraryError.cancelled))
+                            return promise(.success(destination))
                         } catch {
                             return promise(.failure(LibraryError.importFailed(error)))
                         }
@@ -966,7 +951,9 @@ extension ReaderViewController: UIDocumentPickerDelegate {
                         print(error)
                         self.moduleDelegate?.presentError(error, from: self)
                     }
-                } receiveValue: {}
+                } receiveValue: { [self] in
+                    updateAudioBookPath()
+                }
                 .store(in: &subscriptions)
     }
 
