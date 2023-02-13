@@ -151,8 +151,15 @@ class EPUBViewController: ReaderViewController {
 }
 
 extension EPUBViewController: EPUBNavigatorDelegate {
-    func spreadViewDidLoad() {
-        seekToWordIdx(latestWordIdx)
+    func spreadViewDidLoad(_ spreadView: JSExecutable) {
+        spreadView.evaluateScript("splitBodyIntoWords()", inHREF: nil) { result in
+            if case .failure(let error) = result {
+                self.log(.error, error)
+            } else { // success
+                self.seekToWordIdx(self.latestWordIdx)
+            }
+        }
+
     }
 }
 

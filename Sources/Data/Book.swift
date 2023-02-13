@@ -119,7 +119,7 @@ final class BookRepository {
                                          WHERE id = \(id)
                                     """)
             if (url.contains("Experiences")) {
-                let path = try String(contentsOfFile: "/Users/breedoon/Yandex.Disk.localized/JetBrainsProjects/PyCharm/SSS/CP/path-27min-short.csv")
+                let path = try String(contentsOfFile: "/Users/breedoon/Yandex.Disk.localized/JetBrainsProjects/PyCharm/SSS/CP/path-27min-short-new.csv")
                 let sql = "INSERT INTO syncpaths (bookId, wordId, startTimeStep) VALUES (\(id.rawValue)," + path.replacingOccurrences(of: "\n", with: ");\nINSERT INTO syncpaths (bookId, wordId, startTimeStep) VALUES (\(id.rawValue),") + ");"
                 try db.execute(sql: sql)
             }
