@@ -148,11 +148,15 @@ class EPUBViewController: ReaderViewController {
             }
         }
     }
+
+    func splitterScriptText() -> String? {
+        (Bundle.main.url(forResource: "word-splitter", withExtension: "js").flatMap { try? String(contentsOf: $0) })
+    }
 }
 
 extension EPUBViewController: EPUBNavigatorDelegate {
     func spreadViewDidLoad(_ spreadView: JSExecutable) {
-        guard let splitter_script = (Bundle.main.url(forResource: "word-splitter", withExtension: "js").flatMap { try? String(contentsOf: $0) }) else {
+        guard let splitter_script = splitterScriptText() else {
             return
         }
         spreadView.evaluateScript(splitter_script, inHREF: nil) { result in
