@@ -152,11 +152,22 @@ class EPUBViewController: ReaderViewController {
 
 extension EPUBViewController: EPUBNavigatorDelegate {
     func spreadViewDidLoad(_ spreadView: JSExecutable) {
-        spreadView.evaluateScript("splitBodyIntoWords()", inHREF: nil) { result in
-            if case .failure(let error) = result {
+        guard let splitter_script = (Bundle.main.url(forResource: "word-splitter", withExtension: "js").flatMap { try? String(contentsOf: $0) }) else {
+            return
+        }
+        spreadView.evaluateScript(splitter_script, inHREF: nil) { result in
+            switch result {
+            case .success(let value):
+                spreadView.evaluateScript("splitBodyIntoWords()", inHREF: nil) { result in
+                    switch result {
+                    case .success(let value):
+                        self.seekToWordIdx(self.latestWordIdx)
+                    case .failure(let error):
+                        self.log(.error, error)
+                    }
+                }
+            case .failure(let error):
                 self.log(.error, error)
-            } else { // success
-                self.seekToWordIdx(self.latestWordIdx)
             }
         }
 
