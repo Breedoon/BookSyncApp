@@ -2,12 +2,15 @@ allWords = []
 let prevHighlightedEl = document.createElement("dummy")
 
 function splitBodyIntoWords(startWordIdx = 0) {
-    allWords = split(document.body, startWordIdx)
+    if (allWords.length === 0)
+        allWords = split(document.body, startWordIdx)
 }
 
-function getAllWords(startWordIdx = 0) {
+function getAllWordsStr(startWordIdx = 0) {
     splitBodyIntoWords(startWordIdx)
-    return allWords
+    var allWordsStr = []
+    allWords.forEach(el => allWordsStr.push(el.innerText))  // TODO: make ASCII conversion here?
+    return allWordsStr
 }
 
 function countWords(startWordIdx = 0) {

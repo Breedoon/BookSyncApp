@@ -769,6 +769,10 @@ class ReaderViewController: UIViewController, Loggable {
                 .eraseToAnyPublisher()
     }
 
+    func exportWords(completion: @escaping (Result<Int, Error>) -> Void) {
+
+    }
+
 }
 
 extension ReaderViewController: NavigatorDelegate {
@@ -947,7 +951,15 @@ extension ReaderViewController: UIDocumentPickerDelegate {
                 .sink { completion in
                     switch completion {
                     case .finished:
-                        toast(NSLocalizedString("reader_audio_import_success_message", comment: "Success message when importing an audiobook into an open book"), on: self.view, duration: 1)
+                        self.exportWords() { result in
+                            switch result {
+                            case .success(let value):
+                            self.log(.info, "Result words: \(value)")
+                                toast(NSLocalizedString("reader_audio_import_success_message", comment: "Success message when importing an audiobook into an open book"), on: self.view, duration: 1)
+                            case .failure(let error):
+                                self.log(.error, error)
+                            }
+                        }
                     case .failure(let error):
                         print(error)
                         self.moduleDelegate?.presentError(error, from: self)

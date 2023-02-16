@@ -13,12 +13,15 @@
 import UIKit
 import R2Shared
 import R2Navigator
+import WebKit
 
-class EPUBViewController: ReaderViewController {
+class EPUBViewController: ReaderViewController, WKNavigationDelegate {
     var popoverUserconfigurationAnchor: UIBarButtonItem?
     var userSettingNavigationController: UserSettingsNavigationController
     var playerHighlightColorCSS = "rgba(255, 255, 0, 0.3)"
-    
+    private var webView: WKWebView
+    private var completion: ((Result<Void, Error>) -> Void)?
+
     init(publication: Publication, locator: Locator?, bookId: Book.Id, books: BookRepository, bookmarks: BookmarkRepository, highlights: HighlightRepository, resourcesServer: ResourcesServer) {
         var navigatorEditingActions = EditingAction.defaultActions
         navigatorEditingActions.append(EditingAction(title: "Start Playing", action: #selector(playFromSelection)))
@@ -33,8 +36,15 @@ class EPUBViewController: ReaderViewController {
             (settingsStoryboard.instantiateViewController(withIdentifier: "FontSelectionViewController") as! FontSelectionViewController)
         userSettingNavigationController.advancedSettingsViewController =
             (settingsStoryboard.instantiateViewController(withIdentifier: "AdvancedSettingsViewController") as! AdvancedSettingsViewController)
-        
+
+
+        self.webView = WKWebView(frame: .zero)
+
         super.init(navigator: navigator, publication: publication, bookId: bookId, books: books, bookmarks: bookmarks, highlights: highlights)
+
+//        UIApplication.shared.windows.first?.addSubview(self.webView)
+        view.addSubview(webView)
+        webView.navigationDelegate = self
 
         playerHighlightColorCSS = playerHighlightColor.cssValue(alpha: playerHighlightAlpha)
 
@@ -149,17 +159,76 @@ class EPUBViewController: ReaderViewController {
         }
     }
 
+    func loadURL(webView: WKWebView, url: URL?, completion: @escaping (Result<Void, Error>) -> Void) {
+        guard let url = url else {
+            completion(.failure(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
+            return
+        }
+        let request = URLRequest(url: url)
+        webView.load(request)
+        self.completion = completion
+
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if let completion = self.completion {
+            completion(.success(()))
+
+        }
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        if let completion = self.completion {
+            completion(.failure(error))
+
+        }
+    }
+
     func splitterScriptText() -> String? {
         (Bundle.main.url(forResource: "word-splitter", withExtension: "js").flatMap { try? String(contentsOf: $0) })
+    }
+
+    func exportWordsFromChapter(webView wv: WKWebView, splitterScript scpt: String, chapters: [URL], currChapter i: Int = 0, startWordIdx: Int = 0, completion: @escaping (Result<Int, Error>) -> Void) {
+        if (i == chapters.count) {
+            return completion(.success(startWordIdx))
+        }
+
+        loadURL(webView: wv, url: chapters[i]) { _ in
+            wv.evaluateJavaScript(scpt) { result, error in
+                if let error = error {
+                    self.log(.error, error)
+                } else {
+                    wv.evaluateJavaScript("getAllWordsStr(\(startWordIdx))") { result, error in
+                        if let error = error {
+                            self.log(.error, error)
+                        } else {
+                            guard let words: [String] = result as? [String] else {
+                                self.log(.error, "Error extracting list of words")
+                                return completion(.failure(NSError()))
+                            }
+                            return self.exportWordsFromChapter(webView: wv, splitterScript: scpt, chapters: chapters, currChapter: i + 1, startWordIdx: startWordIdx + words.count, completion: completion)
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+    override func exportWords(completion: @escaping (Result<Int, Error>) -> Void) {
+        guard let nav = navigator as? EPUBNavigatorViewController else { return }
+        guard let splitterScript = splitterScriptText() else { return }
+        let chapters: [URL] = nav.getChaptersURLs()
+        let startWordIdx = 0
+
+        return exportWordsFromChapter(webView: self.webView, splitterScript: splitterScript, chapters: chapters, completion: completion)
     }
 }
 
 extension EPUBViewController: EPUBNavigatorDelegate {
     func spreadViewDidLoad(_ spreadView: JSExecutable) {
-        guard let splitter_script = splitterScriptText() else {
-            return
-        }
-        spreadView.evaluateScript(splitter_script, inHREF: nil) { result in
+        guard let splitterScript = splitterScriptText() else { return }
+        spreadView.evaluateScript(splitterScript, inHREF: nil) { result in
             switch result {
             case .success(let value):
                 spreadView.evaluateScript("splitBodyIntoWords()", inHREF: nil) { result in
