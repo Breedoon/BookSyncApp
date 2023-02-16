@@ -159,9 +159,9 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
         }
     }
 
-    func loadURL(webView: WKWebView, url: URL?, completion: @escaping (Result<Void, Error>) -> Void) {
-        guard let url = url else {
-            completion(.failure(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
+    func loadURL(webView: WKWebView, link: Link, completion: @escaping (Result<Void, Error>) -> Void) {
+        guard let url = link.url(relativeTo: publication.baseURL) else {
+            completion(.failure(NSError(domain: "", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
         }
         let request = URLRequest(url: url)
@@ -188,12 +188,12 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
         (Bundle.main.url(forResource: "word-splitter", withExtension: "js").flatMap { try? String(contentsOf: $0) })
     }
 
-    func exportWordsFromChapter(webView wv: WKWebView, splitterScript scpt: String, chapters: [URL], currChapter i: Int = 0, startWordIdx: Int = 0, completion: @escaping (Result<Int, Error>) -> Void) {
+    func exportWordsFromChapter(webView wv: WKWebView, splitterScript scpt: String, chapters: [Link], currChapter i: Int = 0, startWordIdx: Int = 0, completion: @escaping (Result<Int, Error>) -> Void) {
         if (i == chapters.count) {
             return completion(.success(startWordIdx))
         }
 
-        loadURL(webView: wv, url: chapters[i]) { _ in
+        loadURL(webView: wv, link: chapters[i]) { _ in
             wv.evaluateJavaScript(scpt) { result, error in
                 if let error = error {
                     self.log(.error, error)
@@ -218,7 +218,7 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
     override func exportWords(completion: @escaping (Result<Int, Error>) -> Void) {
         guard let nav = navigator as? EPUBNavigatorViewController else { return }
         guard let splitterScript = splitterScriptText() else { return }
-        let chapters: [URL] = nav.getChaptersURLs()
+        let chapters: [Link] = nav.getSpreadLinks()
         let startWordIdx = 0
 
         return exportWordsFromChapter(webView: self.webView, splitterScript: splitterScript, chapters: chapters, completion: completion)
