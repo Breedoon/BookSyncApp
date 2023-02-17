@@ -773,6 +773,36 @@ class ReaderViewController: UIViewController, Loggable {
 
     }
 
+
+    func writeWordsToFile(words: [String]) {
+        books.get(id: bookId)
+        .receive(on: DispatchQueue.main)
+                .sink { completion in
+                    if case .failure(let error) = completion {
+                        self.log(.error, error)
+                    }
+
+
+                } receiveValue: { book in
+                    guard let book = book else { return }
+                    let destination = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("\(book.title).words")
+                    let joinedWords = words.joined(separator: "\n")
+                    guard let data = joinedWords.data(using: .utf8) else { self.log(.error, "Error converting String to data"); return }
+                    do {
+                        if FileManager.default.fileExists(atPath: destination.path) {
+                            let fileHandle = try FileHandle(forWritingTo: destination)
+                            fileHandle.seekToEndOfFile()
+                            fileHandle.write(data)
+                            fileHandle.closeFile()
+                        } else {
+                            try data.write(to: destination)
+                        }
+                    } catch {
+                        self.log(.error, error)
+                    }
+                }
+                .store(in: &subscriptions)
+    }
 }
 
 extension ReaderViewController: NavigatorDelegate {

@@ -194,7 +194,6 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
             return completion(.success(startWordIdx))
         }
 
-
         // Don't need to wait for saving
         books.saveChapterOffset(id: bookId, href: chapters[i].href, nWordsAtStart: startWordIdx)
                 .receive(on: DispatchQueue.main)
@@ -213,15 +212,18 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
             wv.evaluateJavaScript(scpt) { result, error in
                 if let error = error {
                     self.log(.error, error)
+                    return completion(.failure(error))
                 } else {
                     wv.evaluateJavaScript("getAllWordsStr(\(startWordIdx))") { result, error in
                         if let error = error {
                             self.log(.error, error)
+                            return completion(.failure(error))
                         } else {
                             guard let words: [String] = result as? [String] else {
                                 self.log(.error, "Error extracting list of words")
                                 return completion(.failure(NSError()))
                             }
+                            self.writeWordsToFile(words: words)
                             return self.exportWordsFromChapter(webView: wv, splitterScript: scpt, chapters: chapters, currChapter: i + 1, startWordIdx: startWordIdx + words.count, completion: completion)
                         }
                     }
