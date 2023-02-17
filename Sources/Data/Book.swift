@@ -161,4 +161,33 @@ final class BookRepository {
                                     """)
         }
     }
+
+    func saveChapterOffset(id: Book.Id, href: String, nWordsAtStart: Int) -> AnyPublisher<Void, Error> {
+        db.write { db in
+            // TODO: possible error if app closed midway indexing and it might not index later chapters
+            try db.execute(sql: """
+                                        INSERT INTO chapterWordOffsets (chapterHREF, bookId, nWordsAtStart)
+                                            VALUES ('\(href)', \(id.rawValue), \(nWordsAtStart))
+                                    """)
+        }
+    }
+
+    func getChapterOffset(id: Book.Id, href: String) -> AnyPublisher<Int?, Error> {
+        db.observe { db in  // TODO: possible error if app closed midway indexing and it might not index later chapters
+
+            do {
+                    for row in try Row.fetchAll(db.makeStatement(sql: """
+                                                                  SELECT nWordsAtStart 
+                                                                         FROM chapterWordOffsets 
+                                                                         WHERE bookId = \(id.rawValue)
+                                                                         AND chapterHREF = '\(href)'
+                                                                  """)) {
+                    return row[0]  // TODO: idk how to fetch only one so leaving for future
+                }
+            } catch {
+                return nil
+            }
+            return nil
+        }
+    }
 }

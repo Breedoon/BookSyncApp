@@ -58,11 +58,18 @@ final class Database {
                 t.column("wordId", .integer).notNull()
                 t.column("startTimeStep", .integer).notNull()
             }
+
+            try db.create(table: "chapterWordOffsets", ifNotExists: true) { t in
+                t.column("chapterHREF", .text).primaryKey()
+                t.column("bookId", .integer).references("book", onDelete: .cascade).notNull()
+                t.column("nWordsAtStart", .integer).notNull()
+            }
             
             // create an index to make sorting by progression faster
             try db.create(index: "index_highlight_progression", on: "highlight", columns: ["bookId", "progression"], ifNotExists: true)
             try db.create(index: "index_bookmark_progression", on: "bookmark", columns: ["bookId", "progression"], ifNotExists: true)
-            try db.create(index: "index_syncpaths_index", on: "syncpaths", columns: ["bookId", "wordId"], ifNotExists: true)
+            try db.create(index: "index_syncpaths", on: "syncpaths", columns: ["bookId", "wordId"], ifNotExists: true)
+            try db.create(index: "index_chapterWordOffsets", on: "chapterWordOffsets", columns: ["bookId", "chapterHREF"], unique: true, ifNotExists: true)
         }
     }
     

@@ -193,6 +193,21 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
             return completion(.success(startWordIdx))
         }
 
+
+        // Don't need to wait for saving
+        books.saveChapterOffset(id: bookId, href: chapters[i].href, nWordsAtStart: startWordIdx)
+                .receive(on: DispatchQueue.main)
+                .sink { completion in
+                    switch completion {
+                    case .finished:
+                        self.log(.debug, "Uploaded count of chapter \(chapters[i].href)")
+                    case .failure(let error):
+                        self.log(.error, error)
+                    }
+                } receiveValue: { _ in }
+                .store(in: &subscriptions)
+
+
         loadURL(webView: wv, link: chapters[i]) { _ in
             wv.evaluateJavaScript(scpt) { result, error in
                 if let error = error {
@@ -226,8 +241,15 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
 }
 
 extension EPUBViewController: EPUBNavigatorDelegate {
-    func spreadViewDidLoad(_ spreadView: JSExecutable) {
+    func spreadViewDidLoad(_ spreadView: EPUBSpreadAPI) {
         guard let splitterScript = splitterScriptText() else { return }
+
+        self.books.getChapterOffset(id: self.bookId, href: spreadView.getLink().href).sink { completion in
+            self.log(.error, completion)
+        } receiveValue: {res in
+            self.log(.error, res)
+        }.store(in: &subscriptions)
+
         spreadView.evaluateScript(splitterScript, inHREF: nil) { result in
             switch result {
             case .success(let value):

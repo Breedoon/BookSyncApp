@@ -28,13 +28,13 @@ class ReaderViewController: UIViewController, Loggable {
     let navigator: UIViewController & Navigator
     let publication: Publication
     let bookId: Book.Id
-    private let books: BookRepository
+    let books: BookRepository
     private let bookmarks: BookmarkRepository
     private let highlights: HighlightRepository?
 
     private(set) var stackView: UIStackView!
     private lazy var positionLabel = UILabel()
-    private var subscriptions = Set<AnyCancellable>()
+    internal var subscriptions = Set<AnyCancellable>()
     
     private var searchViewModel: SearchViewModel?
     private var searchViewController: UIHostingController<SearchView>?
