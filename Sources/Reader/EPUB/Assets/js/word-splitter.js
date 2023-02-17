@@ -35,8 +35,11 @@ function getSelectedWord() {
 
 function highlightWordIdx(wordIdx, highlightColor="rgba(255, 255, 0, 0.3)") {
     let newWord = document.getElementById(`word-${wordIdx}`)
-    if (!newWord)
+    if (!newWord) {
         console.log("Error: Word not found")
+        prevHighlightedEl.style.background = ""
+        return
+    }
     newWord.style.background = highlightColor
 
     if (newWord == prevHighlightedEl)  // asked to highlight the same word, don't unhighlight anything
