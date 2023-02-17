@@ -247,24 +247,23 @@ extension EPUBViewController: EPUBNavigatorDelegate {
         self.books.getChapterOffset(id: self.bookId, href: spreadView.getLink().href).sink { completion in
             self.log(.error, completion)
         } receiveValue: {res in
-            self.log(.error, res)
-        }.store(in: &subscriptions)
-
-        spreadView.evaluateScript(splitterScript, inHREF: nil) { result in
-            switch result {
-            case .success(let value):
-                spreadView.evaluateScript("splitBodyIntoWords()", inHREF: nil) { result in
-                    switch result {
-                    case .success(let value):
-                        self.seekToWordIdx(self.latestWordIdx)
-                    case .failure(let error):
-                        self.log(.error, error)
+            guard let startWordIdx = res else { return }
+            spreadView.evaluateScript(splitterScript, inHREF: nil) { result in
+                switch result {
+                case .success(let value):
+                    spreadView.evaluateScript("splitBodyIntoWords(\(startWordIdx))", inHREF: nil) { result in
+                        switch result {
+                        case .success(let value):
+                            self.seekToWordIdx(self.latestWordIdx)
+                        case .failure(let error):
+                            self.log(.error, error)
+                        }
                     }
+                case .failure(let error):
+                    self.log(.error, error)
                 }
-            case .failure(let error):
-                self.log(.error, error)
             }
-        }
+        }.store(in: &subscriptions)
 
     }
 }
