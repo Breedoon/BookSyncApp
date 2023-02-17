@@ -23,8 +23,9 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
     private var completion: ((Result<Void, Error>) -> Void)?
 
     init(publication: Publication, locator: Locator?, bookId: Book.Id, books: BookRepository, bookmarks: BookmarkRepository, highlights: HighlightRepository, resourcesServer: ResourcesServer) {
-        var navigatorEditingActions = EditingAction.defaultActions
-        navigatorEditingActions.append(EditingAction(title: "Start Playing", action: #selector(playFromSelection)))
+        var navigatorEditingActions = [EditingAction(title: "Play", action: #selector(playFromSelection))]
+        navigatorEditingActions.append(.copy)
+        navigatorEditingActions.append(.translate)
         var navigatorConfig = EPUBNavigatorViewController.Configuration()
         navigatorConfig.editingActions = navigatorEditingActions
         
