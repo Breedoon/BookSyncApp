@@ -786,7 +786,7 @@ class ReaderViewController: UIViewController, Loggable {
                 } receiveValue: { book in
                     guard let book = book else { return }
                     let destination = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("\(book.title).words")
-                    let joinedWords = words.joined(separator: "\n")
+                    let joinedWords = words.joined(separator: "\n") + "\n"
                     guard let data = joinedWords.data(using: .utf8) else { self.log(.error, "Error converting String to data"); return }
                     do {
                         if FileManager.default.fileExists(atPath: destination.path) {
