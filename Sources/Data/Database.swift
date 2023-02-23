@@ -69,7 +69,7 @@ final class Database {
             try db.create(index: "index_highlight_progression", on: "highlight", columns: ["bookId", "progression"], ifNotExists: true)
             try db.create(index: "index_bookmark_progression", on: "bookmark", columns: ["bookId", "progression"], ifNotExists: true)
             try db.create(index: "index_syncpaths", on: "syncpaths", columns: ["bookId", "wordId"], ifNotExists: true)
-            try db.create(index: "index_chapterWordOffsets", on: "chapterWordOffsets", columns: ["bookId", "chapterHREF"], unique: true, ifNotExists: true)
+            try db.create(index: "index_chapterWordOffsets", on: "chapterWordOffsets", columns: ["bookId", "chapterHREF"], ifNotExists: true)
         }
     }
     
