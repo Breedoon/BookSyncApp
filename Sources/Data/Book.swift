@@ -118,11 +118,15 @@ final class BookRepository {
                                            SET audioPath = \(url)
                                          WHERE id = \(id)
                                     """)
-            if (url.contains("Experiences")) {
-                let path = try String(contentsOfFile: "/Users/breedoon/Yandex.Disk.localized/JetBrainsProjects/PyCharm/SSS/CP/path-27min-short-new.csv")
-                let sql = "INSERT INTO syncpaths (bookId, wordId, startTimeStep) VALUES (\(id.rawValue)," + path.replacingOccurrences(of: "\n", with: ");\nINSERT INTO syncpaths (bookId, wordId, startTimeStep) VALUES (\(id.rawValue),") + ");"
-                try db.execute(sql: sql)
-            }
+        }
+    }
+
+    func addSyncPath(id: Book.Id, pathToCSV: String) -> AnyPublisher<Void, Error> {
+        db.write { db in
+            var path: String = try String(contentsOfFile: pathToCSV)
+            path = path.trimmingCharacters(in: .whitespacesAndNewlines)
+            let sql = "INSERT INTO syncpaths (bookId, wordId, startTimeStep) VALUES (\(id.rawValue)," + path.replacingOccurrences(of: "\n", with: ");\nINSERT INTO syncpaths (bookId, wordId, startTimeStep) VALUES (\(id.rawValue),") + ");"
+            try db.execute(sql: sql)
         }
     }
 

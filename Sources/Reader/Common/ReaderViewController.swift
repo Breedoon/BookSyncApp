@@ -51,6 +51,7 @@ class ReaderViewController: UIViewController, Loggable {
     private var currentHighlightCancellable: AnyCancellable?
 
     private var audioBookPath: String? = nil
+    private var syncPathImported: Bool = false
 
     private var lastLoadFailed: Bool = false
 
@@ -221,6 +222,9 @@ class ReaderViewController: UIViewController, Loggable {
 
         if audioBookPath == nil {  // no audiobook added yet, so add button for that
             buttons.append(UIBarButtonItem(image: UIImage(systemName: "waveform.path.badge.plus"), style: .plain, target: self, action: #selector(importAudioBook)))
+        }
+        if syncPathCache.count == 0 {
+            buttons.append(UIBarButtonItem(image: UIImage(systemName: "text.badge.plus"), style: .plain, target: self, action: #selector(importSyncPath)))
         }
         return buttons
     }
@@ -736,6 +740,13 @@ class ReaderViewController: UIViewController, Loggable {
 
     }
 
+    @objc func importSyncPath(_ sender: Any) {
+        let documentPicker = UIDocumentPickerViewController(documentTypes: ["public.comma-separated-values-text"], in: .import)
+        documentPicker.delegate = self
+        present(documentPicker, animated: true, completion: nil)
+
+    }
+
     /// Moves the given `sourceURL` to the user Documents/ directory.
     private func moveAudiobookToDocuments(from source: URL, title: String, mediaType: MediaType) -> AnyPublisher<URL, Error> {
         Paths.makeDocumentURL(title: title, mediaType: mediaType)
@@ -976,28 +987,47 @@ extension ReaderViewController: UIDocumentPickerDelegate {
     }
 
     private func importFiles(at urls: [URL]) {
-        importAudiobook(from: urls[0])
-                .receive(on: DispatchQueue.main)
-                .sink { completion in
-                    switch completion {
-                    case .finished:
-                        self.exportWords() { result in
-                            switch result {
-                            case .success(let value):
-                            self.log(.info, "Result words: \(value)")
-                                toast(NSLocalizedString("reader_audio_import_success_message", comment: "Success message when importing an audiobook into an open book"), on: self.view, duration: 1)
-                            case .failure(let error):
-                                self.log(.error, error)
-                            }
+        let url: URL = urls[0]
+        if url.absoluteString.hasSuffix(".csv") {
+            books.addSyncPath(id: bookId, pathToCSV: url.path)
+                    .receive(on: DispatchQueue.main)
+                    .sink { completion in
+                        if case .failure(let error) = completion {
+                            self.log(.error, error)
+                            self.moduleDelegate?.presentError(error, from: self)
                         }
-                    case .failure(let error):
-                        print(error)
-                        self.moduleDelegate?.presentError(error, from: self)
+                    } receiveValue: { [self] in
+                        updateSyncPathCache() {
+                            self.makeNavigationBar(animated: true)
+//                            self.seekToWordIdx(-1)
+                        }
                     }
-                } receiveValue: { [self] in
-                    updateAudioBookPath()
-                }
-                .store(in: &subscriptions)
+                    .store(in: &subscriptions)
+
+        } else {
+            importAudiobook(from: urls[0])
+                    .receive(on: DispatchQueue.main)
+                    .sink { completion in
+                        switch completion {
+                        case .finished:
+                            self.exportWords() { result in
+                                switch result {
+                                case .success(let value):
+                                    self.log(.info, "Result words: \(value)")
+                                    toast(NSLocalizedString("reader_audio_import_success_message", comment: "Success message when importing an audiobook into an open book"), on: self.view, duration: 1)
+                                case .failure(let error):
+                                    self.log(.error, error)
+                                }
+                            }
+                        case .failure(let error):
+                            print(error)
+                            self.moduleDelegate?.presentError(error, from: self)
+                        }
+                    } receiveValue: { [self] in
+                        updateAudioBookPath()
+                    }
+                    .store(in: &subscriptions)
+        }
     }
 
 }
