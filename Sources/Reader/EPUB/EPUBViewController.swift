@@ -146,7 +146,7 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
     }
 
     @objc func playFromSelection() {
-        evaluateJavaScript("getSelectedWord()") { [self] result in
+        evaluateJavaScript("getSelectedWordIdx()") { [self] result in
             switch result {
             case .success(let value):
                 if let wordIdx = value as? Int {

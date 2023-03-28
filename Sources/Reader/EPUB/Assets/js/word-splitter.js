@@ -18,7 +18,7 @@ function countWords(startWordIdx = 0) {
     return allWords.length  // TODO: make it more efficient
 }
 
-function getSelectedWord() {
+function getSelectedWordIdx() {
     let anchorNode = window.getSelection().anchorNode
     window.getSelection().removeAllRanges() // clear selection
     if (!anchorNode)
@@ -27,14 +27,11 @@ function getSelectedWord() {
         anchorNode = anchorNode.parentElement
     if (!anchorNode.id) // no id
         return null
-    match = anchorNode.id.match(/^(?:pre\-)?word\-(\d+)$/)
-    if (!match)
-        return null
-    return parseInt(match[1])  // the id group
+    return elIdToWordIdx(anchorNode.id)
 }
 
 function highlightWordIdx(wordIdx, highlightColor="rgba(255, 255, 0, 0.3)") {
-    let newWord = document.getElementById(`word-${wordIdx}`)
+    let newWord = wordIdxToEl(wordIdx)
     if (!newWord) {
         console.log("Error: Word not found")
         prevHighlightedEl.style.background = ""
@@ -49,13 +46,35 @@ function highlightWordIdx(wordIdx, highlightColor="rgba(255, 255, 0, 0.3)") {
     prevHighlightedEl = newWord
 }
 
-const settings = {
+function wordIdxToElId(wordIdx) {
+    return `word-${wordIdx}`
+}
+
+function wordIdxToPreElId(wordIdx) {
+    return `pre-word-${wordIdx}`
+}
+
+function elIdToWordIdx(elId) {
+    let match = elId.match(/^(?:pre\-)?word\-(\d+)$/)
+    if (!match)
+        return null
+    return parseInt(match[1])  // the id group
+
+}
+
+function wordIdxToEl(wordIdx) {
+    return document.getElementById(wordIdxToElId(wordIdx))
+}
+
+settings = {
     wordClass: 'word',
     wordGapClass: 'word-gap',
+    sentenceClass: 'sentence',
     processedFlagAttribute: 'split-processed',
     absolute: false,
     tagName: 'span',
     wordSeparator: /([^\w\d\p{L}'‘’‛]+)/gu,
+    sentenceSeparator: /[.!?]/,
 }
 
 function split(node, startWordIdx = 0) {
@@ -126,13 +145,13 @@ function splitWords(textNode, startWordIdx = 0) {
         if (isWord)
             wordElement = createElement(TAG_NAME, {
                 class: settings.wordClass,
-                id: `word-${wordIdx}`,
+                id: wordIdxToElId(wordIdx),
                 children: WORD,
             })
         else  // this is a separator so make an element for it too
             wordElement = createElement(TAG_NAME, {
                 class: settings.wordGapClass,
-                id: `pre-word-${wordIdx}`,
+                id: wordIdxToPreElId(wordIdx),
                 children: WORD,
             })
 
