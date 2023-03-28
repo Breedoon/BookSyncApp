@@ -156,9 +156,9 @@ class LibraryViewController: UIViewController, Loggable {
     }
     
     private func addBookFromDevice() {
-        var utis = DocumentTypes.main.supportedUTIs
-        utis.append(String(kUTTypeText))
-        let documentPicker = UIDocumentPickerViewController(documentTypes: utis, in: .import)
+//        var utis = DocumentTypes.main.supportedUTIs
+//        utis.append(String(kUTTypeText))
+        let documentPicker = UIDocumentPickerViewController(documentTypes: ["org.idpf.epub-container"], in: .import)
         documentPicker.delegate = self
         present(documentPicker, animated: true, completion: nil)
     }
