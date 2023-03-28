@@ -999,7 +999,7 @@ extension ReaderViewController: UIDocumentPickerDelegate {
                     } receiveValue: { [self] in
                         updateSyncPathCache() {
                             self.makeNavigationBar(animated: true)
-//                            self.seekToWordIdx(-1)
+                            self.seekToWordIdx(-1)
                         }
                     }
                     .store(in: &subscriptions)
