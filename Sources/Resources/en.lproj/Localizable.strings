@@ -140,6 +140,7 @@
 
 "reader_player_format_not_supported" = "This book's format is currently not supported for synchronized reading.";
 "reader_player_cannot_play_from_selection" = "An error occurred while playing from selection. Try selecting a different part?";
+"reader_player_cannot_find_adjacent_sentences" = "An error occurred while trying to skip from selection.";
 
 /* MARK: LCP */
 

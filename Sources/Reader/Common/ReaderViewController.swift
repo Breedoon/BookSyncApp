@@ -583,11 +583,31 @@ class ReaderViewController: UIViewController, Loggable {
     }
 
     @objc func skipBackward() {
-//        SAPlayer.shared.togglePlayAndPause()
+        skipOnce(self.latestWordIdx) { [self] prev, curr, next in
+            guard let curr = curr else {return}
+            if curr == self.latestWordIdx {  // current word is the first in its sentence
+                guard let prev = prev else {return}
+                seekToWordIdx(prev)
+            } else {
+                seekToWordIdx(curr)  // if current word is not first in its sentence, skip to start of current sentence
+            }
+        }
     }
 
     @objc func skipForward() {
-//        SAPlayer.shared.togglePlayAndPause()
+        skipOnce(self.latestWordIdx) { [self] prev, curr, next in
+            guard let next = next else {return}
+            seekToWordIdx(next)
+        }
+    }
+
+    func skipOnce(_ wordIdx: Int, completion: @escaping (Int?, Int?, Int?) -> Void) {
+        /* To be implemented by children;
+        Runs the completion providing it with 3 ids of first word in three sentence: previous, current, and next.
+        eg: if our text is "...This is. A |very| complete. Full sentence..." and current word is "very",
+            will return indexes of: (This, A, Full) */
+
+        toast(NSLocalizedString("reader_player_format_not_supported", comment: "Method for word highlighting has not been overridden in format-specific view controller"), on: self.view, duration: 2)
     }
 
     func updatePlayHighlight() {

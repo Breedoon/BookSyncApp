@@ -145,6 +145,22 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
         evaluateJavaScript("highlightWordIdx(\(wordIdx), \"\(playerHighlightColorCSS)\")")
     }
 
+    override func skipOnce(_ wordIdx: Int, completion: @escaping (Int?, Int?, Int?) -> Void) {
+        evaluateJavaScript("getAdjSentenceStartWordIdx(\(wordIdx))") { result in
+            switch result {
+            case .success(let value):
+                if let ids = value as? [Int?] {
+                    completion(ids[0], ids[1], ids[2])  // prev, curr, next
+                } else {
+                    toast(NSLocalizedString("reader_player_cannot_find_adjacent_sentences", comment: "Error in js function to get get adjacent sentence start id"), on: self.view, duration: 2)
+                }
+            case .failure(let error):
+                self.log(.error, error)
+            }
+
+        }
+    }
+
     @objc func playFromSelection() {
         evaluateJavaScript("getSelectedWordIdx()") { [self] result in
             switch result {
