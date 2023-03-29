@@ -1,3 +1,14 @@
+settings = {
+    wordClass: 'word',
+    wordGapClass: 'word-gap',
+    sentenceClass: 'sentence',
+    processedFlagAttribute: 'split-processed',
+    absolute: false,
+    tagName: 'span',
+    wordSeparator: /([^\w\d\p{L}'‘’‛]+)/gu,
+    sentenceSeparator: /[.!?]/,
+}
+
 allWords = []
 let prevHighlightedEl = document.createElement("dummy")
 
@@ -66,15 +77,36 @@ function wordIdxToEl(wordIdx) {
     return document.getElementById(wordIdxToElId(wordIdx))
 }
 
-settings = {
-    wordClass: 'word',
-    wordGapClass: 'word-gap',
-    sentenceClass: 'sentence',
-    processedFlagAttribute: 'split-processed',
-    absolute: false,
-    tagName: 'span',
-    wordSeparator: /([^\w\d\p{L}'‘’‛]+)/gu,
-    sentenceSeparator: /[.!?]/,
+function getFirstWordIdxInSentence(wordIdx) {
+    /* Given word idx, finds its sentence and returns the idx of the first word in that sentence */
+
+    let wordEl = wordIdxToEl(wordIdx)
+    if (!wordEl)
+        return null
+    // if exists: word.sentence.firstWord.id
+    return elIdToWordIdx(wordEl.parentElement.firstChild.id)
+}
+
+function getLastWordIdxInSentence(wordIdx) {
+    /* Given word idx, finds its sentence and returns the idx of the last word in that sentence */
+
+    let wordEl = wordIdxToEl(wordIdx)
+    if (!wordEl) // if not a valid word idx
+        return null
+    let lastEl = wordEl.parentElement.lastChild
+    if (lastEl.className === settings.wordGapClass)
+        return elIdToWordIdx(lastEl.id) - 1  // gap has id of next word
+    else
+        return elIdToWordIdx(lastEl.id)
+}
+
+function getAdjSentenceStartWordIdx(wordIdx) {
+    /* Returns three word idxs, each being first word of three adjacent sentences (previous, current, next) */
+    let currStartWordIdx = getFirstWordIdxInSentence(wordIdx)  // first word in current
+    let prevStartWordId = getFirstWordIdxInSentence(currStartWordIdx - 1);  // sentence of word before first
+    let nextStartWordId = getLastWordIdxInSentence(wordIdx) + 1  // first word after last in curr senten e
+
+    return [prevStartWordId, currStartWordIdx, nextStartWordId]
 }
 
 function split(node, startWordIdx = 0) {
@@ -126,6 +158,7 @@ function splitWords(textNode, startWordIdx = 0) {
     let words = []
     let wordIdx = startWordIdx
     let isWord = true
+    let sentenceWords = []  // list of words
 
     // Create an array of wrapped word elements.
     words = toWords(VALUE).reduce((result, WORD, idx, arr) => {
@@ -155,14 +188,32 @@ function splitWords(textNode, startWordIdx = 0) {
                 children: WORD,
             })
 
-        splitText.appendChild(wordElement)
+        // splitText.appendChild(wordElement)
+        sentenceWords.push(wordElement)
 
         wordIdx += isWord  // add word index counter if currently dealing with a word
+
+        // if now processed a separator and it was a period
+        if (!isWord && WORD.match(settings.sentenceSeparator)) {
+            // append a new sentence element
+            splitText.appendChild(createElement(TAG_NAME, {
+                class: settings.sentenceClass,
+                children: sentenceWords,  // all accumulated words as children
+            }))
+            sentenceWords = []  // empty for next sentence
+        }
 
         // if this was a word, next element will be a separator and vice versa, so flip isWord
         return (isWord = !isWord) ? // if this wasn't a word, don't append to result
             result : result.concat(wordElement)
     }, []) // END LOOP;
+
+    if (sentenceWords.length)  // last sentence didn't end in a period but text is finished, still append a sentence
+        splitText.appendChild(createElement(TAG_NAME, {
+            class: settings.sentenceClass,
+            children: sentenceWords,  // all accumulated words as children
+        }))
+
 
     textNode.replaceWith(splitText)
     return words
