@@ -59,6 +59,14 @@ class ReaderViewController: UIViewController, Loggable {
     private let playButtonSize = CGFloat(40)
     private var playButtonImageConfig: UIImage.SymbolConfiguration;
 
+    private let skipBackwardButton = UIButton()
+    private let skipBackwardButtonSize = CGFloat(40)
+    private var skipBackwardButtonImageConfig: UIImage.SymbolConfiguration;
+
+    private let skipForwardButton = UIButton()
+    private let skipForwardButtonSize = CGFloat(40)
+    private var skipForwardButtonImageConfig: UIImage.SymbolConfiguration;
+
     private let rateButton = UIButton()
     private let rateButtonFrameSize = CGFloat(40)
     private let rateButtonSize = CGFloat(15)
@@ -97,13 +105,13 @@ class ReaderViewController: UIViewController, Loggable {
             if isPlayable {
                 playButton.isEnabled = true
                 rateButton.isEnabled = true
-//                skipBackwardButton.isEnabled = true
-//                skipForwardButton.isEnabled = true
+                skipBackwardButton.isEnabled = true
+                skipForwardButton.isEnabled = true
             } else {
                 playButton.isEnabled = false
                 rateButton.isEnabled = false
-//                skipBackwardButton.isEnabled = false
-//                skipForwardButton.isEnabled = false
+                skipBackwardButton.isEnabled = false
+                skipForwardButton.isEnabled = false
             }
         }
     }
@@ -116,6 +124,8 @@ class ReaderViewController: UIViewController, Loggable {
         self.bookmarks = bookmarks
         self.highlights = highlights
         self.playButtonImageConfig = UIImage.SymbolConfiguration(pointSize: playButtonSize, weight: .bold, scale: .medium)
+        self.skipBackwardButtonImageConfig = UIImage.SymbolConfiguration(pointSize: skipBackwardButtonSize, weight: .bold, scale: .medium)
+        self.skipForwardButtonImageConfig = UIImage.SymbolConfiguration(pointSize: skipForwardButtonSize, weight: .bold, scale: .medium)
         self.syncPathCache.reserveCapacity(self.syncPathCacheSize + self.wordsLeftToReloadSyncPathCache)
         self.rateOptionsSelectedIdx = rateOptionsDefaultIdx
 
@@ -183,6 +193,8 @@ class ReaderViewController: UIViewController, Loggable {
 
         subscribeToPlayerChanges()
         setPlayButtonState(forAudioPlayerState: playbackStatus)
+        skipBackwardButton.setImage(UIImage(systemName: "chevron.backward", withConfiguration: skipBackwardButtonImageConfig), for: .normal)
+        skipForwardButton.setImage(UIImage(systemName: "chevron.forward", withConfiguration: skipForwardButtonImageConfig), for: .normal)
 
         updateSyncPathCache()
     }
@@ -491,6 +503,30 @@ class ReaderViewController: UIViewController, Loggable {
             playButton.heightAnchor.constraint(equalToConstant: playButtonSize),
         ])
 
+        skipBackwardButton.translatesAutoresizingMaskIntoConstraints = false
+        skipBackwardButton.tintColor = .black
+        skipBackwardButton.addTarget(self, action: #selector(skipBackward), for: .touchUpInside)
+
+        stackView.addSubview(skipBackwardButton)
+        NSLayoutConstraint.activate([
+            // centering between left and play button, from https://stackoverflow.com/a/67700762
+            stackView.leftAnchor.anchorWithOffset(to: skipBackwardButton.centerXAnchor).constraint(equalTo: skipBackwardButton.centerXAnchor.anchorWithOffset(to: playButton.centerXAnchor)),
+            skipBackwardButton.widthAnchor.constraint(equalToConstant: skipBackwardButtonSize),
+            skipBackwardButton.heightAnchor.constraint(equalToConstant: skipBackwardButtonSize),
+        ])
+
+        skipForwardButton.translatesAutoresizingMaskIntoConstraints = false
+        skipForwardButton.tintColor = .black
+        skipForwardButton.addTarget(self, action: #selector(skipForward), for: .touchUpInside)
+
+        stackView.addSubview(skipForwardButton)
+        NSLayoutConstraint.activate([
+            // centering between left and play button, from https://stackoverflow.com/a/67700762
+            stackView.rightAnchor.anchorWithOffset(to: skipForwardButton.centerXAnchor).constraint(equalTo: skipForwardButton.centerXAnchor.anchorWithOffset(to: playButton.centerXAnchor)),
+            skipForwardButton.widthAnchor.constraint(equalToConstant: skipForwardButtonSize),
+            skipForwardButton.heightAnchor.constraint(equalToConstant: skipForwardButtonSize),
+        ])
+
 
         rateButton.translatesAutoresizingMaskIntoConstraints = false
         rateButton.addTarget(self, action: #selector(rateChanged), for: .touchUpInside)
@@ -544,6 +580,14 @@ class ReaderViewController: UIViewController, Loggable {
 
     @objc func togglePlay() {
         SAPlayer.shared.togglePlayAndPause()
+    }
+
+    @objc func skipBackward() {
+//        SAPlayer.shared.togglePlayAndPause()
+    }
+
+    @objc func skipForward() {
+//        SAPlayer.shared.togglePlayAndPause()
     }
 
     func updatePlayHighlight() {
