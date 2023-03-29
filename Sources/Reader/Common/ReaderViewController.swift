@@ -640,6 +640,7 @@ class ReaderViewController: UIViewController, Loggable {
 
         let currWordIdx = cacheIdxToWordIdx(nextCacheIdx)
 
+        zoomInOnNthWord(currWordIdx)
         highlightNthWord(currWordIdx)
 
         latestWordIdx = currWordIdx  // save the current word to not re-highlight it
@@ -702,6 +703,7 @@ class ReaderViewController: UIViewController, Loggable {
         syncPathCache = []
         syncPathCache.reserveCapacity(syncPathCacheSize)
         latestWordIdx = wordIdx
+        zoomInOnNthWord(wordIdx)
         highlightNthWord(wordIdx)
         updateSyncPathCache { [self] in
             if !(0..<syncPathCache.count ~= wordIdxToCacheIdx(wordIdx)) { return }
@@ -714,6 +716,29 @@ class ReaderViewController: UIViewController, Loggable {
 
     func highlightNthWord(_ wordIdx: Int) {
         toast(NSLocalizedString("reader_player_format_not_supported", comment: "Method for word highlighting has not been overridden in format-specific view controller"), on: self.view, duration: 2)
+    }
+    
+    func zoomInOnNthWord(_ wordIdx: Int) {
+        toast(NSLocalizedString("reader_player_format_not_supported", comment: "Method for word highlighting has not been overridden in format-specific view controller"), on: self.view, duration: 2)
+    }
+
+    func calculateZoomAndOffsets(frameWidth: Double, frameHeight: Double, minZoom: Double, maxZoom: Double, wordLeftOffset: Double, wordTopOffset: Double, wordWidth: Double, wordHeight: Double) -> (zoomLevel: Double, leftOffset: Double, topOffset: Double) {
+        // Calculate the width and height ratios of the frame to the word (in case word is too tall?)
+        let widthRatio = frameWidth / wordWidth
+        let heightRatio = frameHeight / wordHeight
+
+        // Determine the zoom level by using the smaller of the two ratios, constrained by maxZoom and minZoom
+        let zoomLevel = max(minZoom, min(maxZoom, min(widthRatio, heightRatio)))
+
+        // Calculate spacing of the word within the frame
+        let centeredLeftOffset = abs((frameWidth / zoomLevel) - wordWidth) / 2
+        let centeredTopOffset = abs((frameHeight / zoomLevel) - wordHeight) / 2
+
+        // Calculate the left full offset, ensuring it's above 0
+        let leftOffset = max(0, wordLeftOffset - centeredLeftOffset)
+        let topOffset = max(0, wordTopOffset - centeredTopOffset)
+
+        return (zoomLevel, leftOffset, topOffset)
     }
 
     func saveLatestWordIdx() {

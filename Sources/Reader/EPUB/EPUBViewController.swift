@@ -145,6 +145,35 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
         evaluateJavaScript("highlightWordIdx(\(wordIdx), \"\(playerHighlightColorCSS)\")")
     }
 
+    override func zoomInOnNthWord(_ wordIdx: Int) {
+        evaluateJavaScript("getWordPosition(\(wordIdx))") { result in
+            switch result {
+            case .success(let value):
+                if let el = value as? [Double] {
+                    self.zoomWebViewToWord(wordLeftOffset: el[0], wordTopOffset: el[1], wordWidth: el[2], wordHeight: el[3])  // prev, curr, next
+                } else {
+                    self.log(.error, "Unable to zoom web view onto a given word")
+                }
+            case .failure(let error):
+                self.log(.error, error)
+            }
+        }
+    }
+
+    func zoomWebViewToWord(wordLeftOffset: Double, wordTopOffset: Double, wordWidth: Double, wordHeight: Double) {
+        guard let nav = navigator as? EPUBNavigatorViewController else { return }
+        guard let v = nav.getCurrentView() else { return }
+        let sv = v.getWebView().scrollView  // scroll view that has info about frame size
+
+        // Calculate the largest zoom level to fit a given word onto the screen, and offsets
+        let (zoomLevel, leftOffset, topOffset) = calculateZoomAndOffsets(frameWidth: sv.frame.width, frameHeight: sv.frame.height, minZoom: 1, maxZoom: sv.zoomScale,
+                wordLeftOffset: wordLeftOffset, wordTopOffset: wordTopOffset, wordWidth: wordWidth, wordHeight: wordHeight)
+
+//        sv.setValue(0.1, forKey: "contentOffsetAnimationDuration")  // to do transformations fast
+        sv.setZoomScale(zoomLevel, animated: false)
+        sv.setContentOffset(CGPoint(x: leftOffset * zoomLevel, y: topOffset * zoomLevel), animated: false)  // too jumpy if animated
+    }
+
     override func skipOnce(_ wordIdx: Int, completion: @escaping (Int?, Int?, Int?) -> Void) {
         evaluateJavaScript("getAdjSentenceStartWordIdx(\(wordIdx))") { result in
             switch result {
@@ -274,6 +303,7 @@ extension EPUBViewController: EPUBNavigatorDelegate {
                         switch result {
                         case .success(let value):
                             self.seekToWordIdx(self.latestWordIdx)
+
                         case .failure(let error):
                             self.log(.error, error)
                         }

@@ -12,7 +12,15 @@ settings = {
 allWords = []
 let prevHighlightedEl = document.createElement("dummy")
 
+function getWordPosition(wordIdx) {
+    let el = wordIdxToEl(wordIdx)
+    if (!el)
+        return [null, null, null, null]
+    return [el.offsetLeft, el.offsetTop, el.offsetWidth, el.offsetHeight]
+}
+
 function splitBodyIntoWords(startWordIdx = 0) {
+    document.querySelector("meta[name=viewport]").setAttribute('content', 'width=device-width, initial-scale=1.0')  // TODO: remove
     if (allWords.length === 0)
         allWords = split(document.body, startWordIdx)
 }
