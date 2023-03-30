@@ -12,6 +12,16 @@ settings = {
 allWords = []
 let prevHighlightedEl = document.createElement("dummy")
 
+function switchViewportScalability(scalable = false) {
+    let vpEl = document.querySelector("meta[name=viewport]")
+    if (!vpEl)  // Something went wrong
+        return false
+    if (scalable)
+        vpEl.setAttribute('content', 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=yes')
+    else
+        vpEl.setAttribute('content', 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no')
+}
+
 function getWordPosition(wordIdx) {
     let el = wordIdxToEl(wordIdx)
     if (!el)
@@ -20,7 +30,6 @@ function getWordPosition(wordIdx) {
 }
 
 function splitBodyIntoWords(startWordIdx = 0) {
-    document.querySelector("meta[name=viewport]").setAttribute('content', 'width=device-width, initial-scale=1.0')  // TODO: remove
     if (allWords.length === 0)
         allWords = split(document.body, startWordIdx)
 }

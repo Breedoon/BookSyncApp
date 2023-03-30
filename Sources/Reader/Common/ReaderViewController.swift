@@ -55,25 +55,27 @@ class ReaderViewController: UIViewController, Loggable {
 
     private var lastLoadFailed: Bool = false
 
-    private let playButton = UIButton()
-    private let playButtonSize = CGFloat(40)
-    private var playButtonImageConfig: UIImage.SymbolConfiguration;
+    let playButton = UIButton()
+    let playButtonSize = CGFloat(40)
+    var playButtonImageConfig: UIImage.SymbolConfiguration;
 
-    private let skipBackwardButton = UIButton()
-    private let skipBackwardButtonSize = CGFloat(40)
-    private var skipBackwardButtonImageConfig: UIImage.SymbolConfiguration;
+    let skipBackwardButton = UIButton()
+    let skipBackwardButtonSize = CGFloat(40)
+    var skipBackwardButtonImageConfig: UIImage.SymbolConfiguration;
 
-    private let skipForwardButton = UIButton()
-    private let skipForwardButtonSize = CGFloat(40)
-    private var skipForwardButtonImageConfig: UIImage.SymbolConfiguration;
+    let skipForwardButton = UIButton()
+    let skipForwardButtonSize = CGFloat(40)
+    var skipForwardButtonImageConfig: UIImage.SymbolConfiguration;
 
-    private let rateButton = UIButton()
-    private let rateButtonFrameSize = CGFloat(40)
-    private let rateButtonSize = CGFloat(15)
-    private let rateOptions = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
-    private let rateOptionsLabels = ["½×", "¾×", "1×", "1¼×", "1½×", "1¾×", "2×"]
-    private final var rateOptionsDefaultIdx = 2  // 1x by default
-    private var rateOptionsSelectedIdx: Int
+    let rateButton = UIButton()
+    let rateButtonFrameSize = CGFloat(40)
+    let rateButtonSize = CGFloat(15)
+    let rateOptions = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+    let rateOptionsLabels = ["½×", "¾×", "1×", "1¼×", "1½×", "1¾×", "2×"]
+    final var rateOptionsDefaultIdx = 2  // 1x by default
+    var rateOptionsSelectedIdx: Int
+
+    var zoomModeEnabled = false;
 
     private var timer = Timer()
 
@@ -640,7 +642,7 @@ class ReaderViewController: UIViewController, Loggable {
 
         let currWordIdx = cacheIdxToWordIdx(nextCacheIdx)
 
-        zoomInOnNthWord(currWordIdx)
+        if zoomModeEnabled { zoomInOnNthWord(currWordIdx) }
         highlightNthWord(currWordIdx)
 
         latestWordIdx = currWordIdx  // save the current word to not re-highlight it
@@ -703,7 +705,7 @@ class ReaderViewController: UIViewController, Loggable {
         syncPathCache = []
         syncPathCache.reserveCapacity(syncPathCacheSize)
         latestWordIdx = wordIdx
-        zoomInOnNthWord(wordIdx)
+        if zoomModeEnabled { zoomInOnNthWord(wordIdx) }
         highlightNthWord(wordIdx)
         updateSyncPathCache { [self] in
             if !(0..<syncPathCache.count ~= wordIdxToCacheIdx(wordIdx)) { return }

@@ -86,6 +86,7 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        self.updateUserSettingsStyle()
     }
 
     override open func viewWillDisappear(_ animated: Bool) {
@@ -166,12 +167,13 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
         let sv = v.getWebView().scrollView  // scroll view that has info about frame size
 
         // Calculate the largest zoom level to fit a given word onto the screen, and offsets
-        let (zoomLevel, leftOffset, topOffset) = calculateZoomAndOffsets(frameWidth: sv.frame.width, frameHeight: sv.frame.height, minZoom: 1, maxZoom: sv.zoomScale,
+        let (zoomLevel, leftOffset, topOffset) = calculateZoomAndOffsets(frameWidth: sv.frame.width, frameHeight: sv.frame.height, minZoom: 1,
+                maxZoom: sv.zoomScale, // make sure it only zooms out if the word but doesn't zoom in
                 wordLeftOffset: wordLeftOffset, wordTopOffset: wordTopOffset, wordWidth: wordWidth, wordHeight: wordHeight)
 
-//        sv.setValue(0.1, forKey: "contentOffsetAnimationDuration")  // to do transformations fast
-        sv.setZoomScale(zoomLevel, animated: false)
-        sv.setContentOffset(CGPoint(x: leftOffset * zoomLevel, y: topOffset * zoomLevel), animated: false)  // too jumpy if animated
+        sv.setValue(0.0, forKey: "contentOffsetAnimationDuration")  // to do transformations fast
+        sv.setZoomScale(zoomLevel, animated: true)
+        sv.setContentOffset(CGPoint(x: leftOffset * zoomLevel, y: topOffset * zoomLevel), animated: true)  // too jumpy if animated
     }
 
     override func skipOnce(_ wordIdx: Int, completion: @escaping (Int?, Int?, Int?) -> Void) {
@@ -334,9 +336,28 @@ extension EPUBViewController: UserSettingsNavigationControllerDelegate {
     internal func updateUserSettingsStyle() {
         DispatchQueue.main.async {
             self.epubNavigator.updateUserSettingStyle()
+            self.scrollModeChanged()
         }
     }
-    
+
+    internal func scrollModeChanged() {
+        guard let scrollEnabled = getUserSettings().userProperties.getProperty(reference: ReadiumCSSReference.scroll.rawValue) as? Switchable else {return}
+        if scrollEnabled.on == self.zoomModeEnabled { return }  // value didn't change
+
+        self.zoomModeEnabled = scrollEnabled.on
+        self.evaluateJavaScript("switchViewportScalability(\(scrollEnabled.on))")  // make viewport scalable if scroll
+
+        guard let nav = navigator as? EPUBNavigatorViewController else { return }
+        guard let v = nav.getCurrentView() else { return }
+
+        if !self.zoomModeEnabled {  // scroll mode became disabled, don't allow zooming in
+            v.getWebView().scrollView.setZoomScale(1, animated: true)
+        } else {  // scroll mode is now enabled, scale it a bit
+            v.getWebView().scrollView.setZoomScale(2, animated: false)
+//            self.zoomInOnNthWord(self.latestWordIdx)  // zoom onto the current word  (doesn't seem to zoom right)
+        }
+    }
+
     /// Synchronyze the UI appearance to the UserSettings.Appearance.
     ///
     /// - Parameter appearance: The appearance.
