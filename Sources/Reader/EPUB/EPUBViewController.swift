@@ -372,6 +372,11 @@ extension EPUBViewController: UserSettingsNavigationControllerDelegate {
         navigationController?.navigationBar.tintColor = colors.textColor
         
         navigationController?.navigationBar.titleTextAttributes = [NSAttributedString.Key.foregroundColor: colors.textColor]
+
+        self.playButton.tintColor = colors.textColor
+        self.skipForwardButton.tintColor = colors.textColor
+        self.skipBackwardButton.tintColor = colors.textColor
+        rateButton.setTitleColor(colors.textColor, for: .normal)
     }
 
 }
