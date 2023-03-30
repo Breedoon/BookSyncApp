@@ -359,8 +359,12 @@ extension EPUBViewController: UserSettingsNavigationControllerDelegate {
         if !self.zoomModeEnabled {  // scroll mode became disabled, don't allow zooming in
             v.getWebView().scrollView.setZoomScale(1, animated: true)
         } else {  // scroll mode is now enabled, scale it a bit
-            v.getWebView().scrollView.setZoomScale(2, animated: false)
-//            self.zoomInOnNthWord(self.latestWordIdx)  // zoom onto the current word  (doesn't seem to zoom right)
+            // schedule to move to current word in 0.5s after (hopefully) the webpage restructured from paginated to flat
+            // there isn't an easy callback function so have to do it this way unfortunately
+            Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false, block: { _ in
+                v.getWebView().scrollView.setZoomScale(2, animated: true)
+                self.zoomInOnNthWord(self.latestWordIdx)  // zoom onto the current word
+            })
         }
     }
 
