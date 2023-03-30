@@ -100,7 +100,7 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
 
         // User configuration button
         let userSettingsButton = UIBarButtonItem(image: #imageLiteral(resourceName: "settingsIcon"), style: .plain, target: self, action: #selector(presentUserSettings))
-        buttons.insert(userSettingsButton, at: 1)
+        buttons.insert(userSettingsButton, at: 0)
         popoverUserconfigurationAnchor = userSettingsButton
 
         return buttons

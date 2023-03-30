@@ -221,13 +221,13 @@ class ReaderViewController: UIViewController, Loggable {
     func makeNavigationBarButtons() -> [UIBarButtonItem] {
         var buttons: [UIBarButtonItem] = []
         // Table of Contents
-        buttons.append(UIBarButtonItem(image: #imageLiteral(resourceName: "menuIcon"), style: .plain, target: self, action: #selector(presentOutline)))
+//        buttons.append(UIBarButtonItem(image: #imageLiteral(resourceName: "menuIcon"), style: .plain, target: self, action: #selector(presentOutline)))
         // DRM management
         if publication.isProtected {
             buttons.append(UIBarButtonItem(image: #imageLiteral(resourceName: "drm"), style: .plain, target: self, action: #selector(presentDRMManagement)))
         }
         // Bookmarks
-        buttons.append(UIBarButtonItem(image: #imageLiteral(resourceName: "bookmark"), style: .plain, target: self, action: #selector(bookmarkCurrentPosition)))
+//        buttons.append(UIBarButtonItem(image: #imageLiteral(resourceName: "bookmark"), style: .plain, target: self, action: #selector(bookmarkCurrentPosition)))
         
         // Search
         if publication._isSearchable {
