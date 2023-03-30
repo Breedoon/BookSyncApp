@@ -167,9 +167,15 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
         let sv = v.getWebView().scrollView  // scroll view that has info about frame size
 
         // Calculate the largest zoom level to fit a given word onto the screen, and offsets
-        let (zoomLevel, leftOffset, topOffset) = calculateZoomAndOffsets(frameWidth: sv.frame.width, frameHeight: sv.frame.height, minZoom: 1,
-                maxZoom: sv.zoomScale, // make sure it only zooms out if the word but doesn't zoom in
-                wordLeftOffset: wordLeftOffset, wordTopOffset: wordTopOffset, wordWidth: wordWidth, wordHeight: wordHeight)
+        let (zoomLevel, leftOffset, topOffset) = calculateZoomAndOffsets(
+                frameWidth: sv.frame.width, frameHeight: sv.frame.height,
+                minZoom: 1,
+                maxZoom: sv.zoomScale, // make sure it only zooms out if the word doesn't ift, but doesn't zoom in
+                wordLeftOffset: wordLeftOffset, wordTopOffset: wordTopOffset, wordWidth: wordWidth, wordHeight: wordHeight,
+                // Specifying container bounds ensures words at the edge don't create large empy chunk on the side to center the word
+                // Also these two need to be scaled because they're given with with the zoom level
+                containerWidth: sv.contentSize.width / sv.zoomScale, containerHeight: sv.contentSize.height / sv.zoomScale
+        )
 
         sv.setValue(0.0, forKey: "contentOffsetAnimationDuration")  // to do transformations fast
         sv.setZoomScale(zoomLevel, animated: true)

@@ -724,21 +724,38 @@ class ReaderViewController: UIViewController, Loggable {
         toast(NSLocalizedString("reader_player_format_not_supported", comment: "Method for word highlighting has not been overridden in format-specific view controller"), on: self.view, duration: 2)
     }
 
-    func calculateZoomAndOffsets(frameWidth: Double, frameHeight: Double, minZoom: Double, maxZoom: Double, wordLeftOffset: Double, wordTopOffset: Double, wordWidth: Double, wordHeight: Double) -> (zoomLevel: Double, leftOffset: Double, topOffset: Double) {
+    func calculateZoomAndOffsets(
+            frameWidth: Double, frameHeight: Double,
+            minZoom: Double, maxZoom: Double,
+            wordLeftOffset: Double, wordTopOffset: Double,
+            wordWidth: Double, wordHeight: Double,
+            containerWidth: Double? = nil, containerHeight: Double? = nil
+    ) -> (zoomLevel: Double, leftOffset: Double, topOffset: Double) {
+        /* calculates zoom and offset to fit a word of given size and location onto the screen
+            if container size is non-nil, will ensure the frame does not exceed 0-size in the given dimension */
+
         // Calculate the width and height ratios of the frame to the word (in case word is too tall?)
         let widthRatio = frameWidth / wordWidth
         let heightRatio = frameHeight / wordHeight
 
         // Determine the zoom level by using the smaller of the two ratios, constrained by maxZoom and minZoom
-        let zoomLevel = max(minZoom, min(maxZoom, min(widthRatio, heightRatio)))
+        let zoomLevel = max(minZoom, min(min(widthRatio, heightRatio), maxZoom))
 
         // Calculate spacing of the word within the frame
         let centeredLeftOffset = abs((frameWidth / zoomLevel) - wordWidth) / 2
         let centeredTopOffset = abs((frameHeight / zoomLevel) - wordHeight) / 2
 
-        // Calculate the left full offset, ensuring it's above 0
-        let leftOffset = max(0, wordLeftOffset - centeredLeftOffset)
-        let topOffset = max(0, wordTopOffset - centeredTopOffset)
+        // Calculate the left full offset
+        var leftOffset = wordLeftOffset - centeredLeftOffset
+        var topOffset = wordTopOffset - centeredTopOffset
+
+        // Apply constraints within givne dimsnsions
+        if let lowerBound = containerHeight {
+            topOffset = max(0, min(topOffset, lowerBound - frameHeight / zoomLevel))
+        }
+        if let rightBound = containerWidth {
+            leftOffset = max(0, min(leftOffset, rightBound - frameWidth / zoomLevel))
+        }
 
         return (zoomLevel, leftOffset, topOffset)
     }
