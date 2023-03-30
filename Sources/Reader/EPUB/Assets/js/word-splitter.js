@@ -3,6 +3,7 @@ settings = {
     wordGapClass: 'word-gap',
     sentenceClass: 'sentence',
     processedFlagAttribute: 'split-processed',
+    highlightedAttribute: 'highlighted',
     absolute: false,
     tagName: 'span',
     wordSeparator: /([^\w\d\p{L}'‘’‛]+)/gu,
@@ -63,13 +64,16 @@ function highlightWordIdx(wordIdx, highlightColor="rgba(255, 255, 0, 0.3)") {
     if (!newWord) {
         console.log("Error: Word not found")
         prevHighlightedEl.style.background = ""
+        prevHighlightedEl.classList.remove(settings.highlightedAttribute)
         return
     }
     newWord.style.background = highlightColor
+    newWord.classList.add(settings.highlightedAttribute)
 
     if (newWord == prevHighlightedEl)  // asked to highlight the same word, don't unhighlight anything
         return
 
+    prevHighlightedEl.classList.remove(settings.highlightedAttribute)
     prevHighlightedEl.style.background = ""
     prevHighlightedEl = newWord
 }
