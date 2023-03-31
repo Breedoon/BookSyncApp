@@ -48,7 +48,7 @@
 "TZb-nI-KDr.segmentTitles[0]" = "Default";
 
 /* Class = "UISegmentedControl"; TZb-nI-KDr.segmentTitles[1] = "Sepia"; ObjectID = "TZb-nI-KDr"; */
-"TZb-nI-KDr.segmentTitles[1]" = "Sepia";
+"TZb-nI-KDr.segmentTitles[1]" = "One-word";
 
 /* Class = "UISegmentedControl"; TZb-nI-KDr.segmentTitles[2] = "Night"; ObjectID = "TZb-nI-KDr"; */
 "TZb-nI-KDr.segmentTitles[2]" = "Night";
@@ -108,7 +108,7 @@
 "vPS-fv-5nP.accessibilityLabel" = "Decrease Line Height";
 
 /* Class = "UILabel"; text = "Scroll mode"; ObjectID = "vim-oD-Nr3"; */
-"vim-oD-Nr3.text" = "Scroll mode";
+"vim-oD-Nr3.text" = "Following mode";
 
 /* Class = "UIButton"; accessibilityLabel = "Increase Word Spacing"; ObjectID = "xPG-Eb-jSz"; */
 "xPG-Eb-jSz.accessibilityLabel" = "Increase Word Spacing";

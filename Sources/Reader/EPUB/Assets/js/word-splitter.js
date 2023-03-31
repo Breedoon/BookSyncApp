@@ -23,6 +23,21 @@ function switchViewportScalability(scalable = false) {
         vpEl.setAttribute('content', 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no')
 }
 
+function appendOneWordModeStyle() {
+    /* Repurposes Sepia style to be the one-word mode */
+    let oneWordModeStyleId = 'one-word-mode-style'
+    let oneWordModeStyleEl = document.getElementById(oneWordModeStyleId)
+
+    if (oneWordModeStyleEl) { return }  // already have the style el, no need to do anything
+    // otherwise, make that element:
+    var style = ":root[style*=\"readium-sepia-on\"] .highlighted {color: black!important; background: transparent!important;} " +
+        ":root[style*=\"readium-sepia-on\"] {color: transparent!important;"
+    var styleSheet = document.createElement("style")
+    styleSheet.innerText = style
+    styleSheet.id = oneWordModeStyleId
+    document.head.appendChild(styleSheet)
+}
+
 function getWordPosition(wordIdx) {
     let el = wordIdxToEl(wordIdx)
     if (!el)
@@ -31,6 +46,7 @@ function getWordPosition(wordIdx) {
 }
 
 function splitBodyIntoWords(startWordIdx = 0) {
+    appendOneWordModeStyle()  // for now it's here as a callback function when the spread is loaded; TODO: move
     if (allWords.length === 0)
         allWords = split(document.body, startWordIdx)
 }
