@@ -176,10 +176,16 @@ class EPUBViewController: ReaderViewController, WKNavigationDelegate {
                 // Also these two need to be scaled because they're given with with the zoom level
                 containerWidth: sv.contentSize.width / sv.zoomScale, containerHeight: sv.contentSize.height / sv.zoomScale
         )
+        var animated: Bool;
+        if sv.zoomScale < 1.5 {
+            sv.setValue(0.1, forKey: "contentOffsetAnimationDuration")  // speed up but preserve smoothness
+            animated = true  // smooth scrolling
+        } else {
+            animated = false
+        }
 
-        sv.setValue(0.0, forKey: "contentOffsetAnimationDuration")  // to do transformations fast
-        sv.setZoomScale(zoomLevel, animated: true)
-        sv.setContentOffset(CGPoint(x: leftOffset * zoomLevel, y: topOffset * zoomLevel), animated: true)  // too jumpy if animated
+        sv.setZoomScale(zoomLevel, animated: animated)
+        sv.setContentOffset(CGPoint(x: leftOffset * zoomLevel, y: topOffset * zoomLevel), animated: animated)  // too jumpy if animated
     }
 
     override func skipOnce(_ wordIdx: Int, completion: @escaping (Int?, Int?, Int?) -> Void) {
@@ -362,7 +368,6 @@ extension EPUBViewController: UserSettingsNavigationControllerDelegate {
             // schedule to move to current word in 0.5s after (hopefully) the webpage restructured from paginated to flat
             // there isn't an easy callback function so have to do it this way unfortunately
             Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false, block: { _ in
-                v.getWebView().scrollView.setZoomScale(2, animated: true)
                 self.zoomInOnNthWord(self.latestWordIdx)  // zoom onto the current word
             })
         }
